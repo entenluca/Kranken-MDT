@@ -1,0 +1,98 @@
+local function isAdmin(source)
+    return IsPlayerAceAllowed(source, Config.AdminAce)
+end
+
+local function buildConfiguratorPayload()
+    return {
+        missions = Storage.GetMissions(),
+        jobs = Config.Jobs,
+        vehicleTypes = Config.VehicleTypes,
+        defaultNpcModel = Config.DefaultNpcModel,
+    }
+end
+
+RegisterNetEvent('nm_ktjobs:server:requestConfigurator', function()
+    local source = source
+    if not isAdmin(source) then
+        Framework.Notify(source, 'Keine Berechtigung für den Einsatz-Konfigurator.', 'error')
+        return
+    end
+
+    TriggerClientEvent('nm_ktjobs:client:openConfigurator', source, buildConfiguratorPayload())
+end)
+
+RegisterNetEvent('nm_ktjobs:server:saveMissions', function(missions)
+    local source = source
+    if not isAdmin(source) then
+        return
+    end
+
+    Storage.SetMissions(missions)
+    Framework.Notify(source, 'Einsätze gespeichert.', 'success')
+    TriggerClientEvent('nm_ktjobs:client:configSaved', source, Storage.GetMissions())
+end)
+
+RegisterNetEvent('nm_ktjobs:server:acceptMission', function(activeId)
+    local source = source
+    local active = Missions.GetActive(activeId)
+    if not active or active.acceptedBy then
+        return
+    end
+
+    if Framework.GetJob(source) ~= active.mission.job then
+        Framework.Notify(source, 'Du hast nicht den richtigen Job für diesen Einsatz.', 'error')
+        return
+    end
+
+    local ped = GetPlayerPed(source)
+    local coords = GetEntityCoords(ped)
+    local start = Utils.CoordsToVector3(active.mission.start)
+    if #(coords - start) > Config.AcceptRadius + 5.0 then
+        Framework.Notify(source, 'Du bist nicht am Startpunkt.', 'error')
+        return
+    end
+
+    active.acceptedBy = source
+    active.state = 'accepted'
+    Missions.GiveMissionItems(source, active.mission)
+
+    TriggerClientEvent('nm_ktjobs:client:missionAccepted', source, activeId, active.mission)
+    TriggerClientEvent('nm_ktjobs:client:missionEnded', -1, activeId, 'taken', 0)
+end)
+
+RegisterNetEvent('nm_ktjobs:server:completeMission', function(activeId)
+    local source = source
+    local ok, reward = Missions.CompleteMission(source, activeId)
+    if ok then
+        Framework.Notify(source, ('Einsatz abgeschlossen. Belohnung: $%s'):format(reward), 'success')
+    end
+end)
+
+RegisterNetEvent('nm_ktjobs:server:cancelMission', function(activeId)
+    local source = source
+    if Missions.CancelMission(source, activeId) then
+        Framework.Notify(source, 'Einsatz abgebrochen.', 'error')
+    end
+end)
+
+RegisterNetEvent('nm_ktjobs:server:vehicleStatus', function(missionId)
+    local source = source
+    if not isAdmin(source) then
+        return
+    end
+
+    local mission = Storage.GetMissionById(missionId)
+    if not mission then
+        return
+    end
+
+    TriggerClientEvent('nm_ktjobs:client:vehicleStatus', source, missionId, Missions.GetVehicleStatus(mission))
+end)
+
+AddEventHandler('onResourceStart', function(resourceName)
+    if resourceName ~= GetCurrentResourceName() then
+        return
+    end
+
+    print('[nm_ktjobs] Gestartet – Framework: ' .. Framework.name)
+end)
