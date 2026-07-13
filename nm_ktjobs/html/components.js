@@ -70,7 +70,7 @@ const UI = {
             placeholder = 'Auswählen',
         } = options;
 
-        let current = value ?? (items[0]?.value ?? '');
+        let current = value !== undefined ? value : (items[0]?.value ?? '');
         const root = UI.el('div', `dropdown ${className}`.trim());
         const trigger = UI.el('button', 'dropdown-trigger', { type: 'button' });
         const label = UI.el('span', 'dropdown-label');
@@ -78,10 +78,14 @@ const UI = {
         chevron.classList.add('dropdown-chevron');
         const menu = UI.el('div', 'dropdown-menu');
 
-        const getLabel = (val) => items.find((i) => i.value === val)?.label ?? placeholder;
+        const getLabel = (val) => {
+            if (val === '' || val === undefined || val === null) return placeholder;
+            return items.find((i) => i.value === val)?.label ?? placeholder;
+        };
 
         const renderLabel = () => {
             label.textContent = getLabel(current);
+            label.classList.toggle('is-placeholder', current === '' || current === undefined || current === null);
         };
 
         const close = () => {
@@ -110,7 +114,7 @@ const UI = {
                 dataset: { value: item.value },
                 text: item.label,
             });
-            if (item.value === current) option.classList.add('selected');
+            if (item.value === current && current !== '') option.classList.add('selected');
             option.addEventListener('click', (e) => {
                 e.stopPropagation();
                 setValue(item.value);

@@ -83,7 +83,7 @@ if IsDuplicityVersion() then
             return true
         elseif Framework.name == 'qb' then
             local account = Config.RewardAccount == 'bank' and 'bank' or 'cash'
-            player.Functions.AddMoney(account, amount, 'nm_ktjobs-reward')
+            player.Functions.AddMoney(account, amount, 'ktjobs-reward')
             return true
         end
 

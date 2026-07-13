@@ -479,7 +479,19 @@ button {
     gap: 3px;
 }
 
+.list-row .vehicle-type-dd {
+    min-width: 0;
+}
+
+.dropdown-label.is-placeholder {
+    color: #5c6b7e;
+}
+
 .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 40px 0;
+}
     text-align: center;
     color: var(--muted);
     padding: 40px 0;

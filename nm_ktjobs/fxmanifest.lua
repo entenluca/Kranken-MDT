@@ -1,9 +1,9 @@
 fx_version 'cerulean'
 game 'gta5'
 
-name 'nm_ktjobs'
+name 'ktjobs'
 description 'Automatische MTD- und Krankentransporte mit Einsatz-Konfigurator'
-author 'nm'
+author ''
 version '1.0.0'
 
 lua54 'yes'
@@ -22,6 +22,7 @@ client_scripts {
 }
 
 server_scripts {
+    'bridge/emergencydispatch.lua',
     'bridge/dispatch.lua',
     'server/storage.lua',
     'server/missions.lua',

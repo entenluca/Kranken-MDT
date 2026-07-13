@@ -3,7 +3,7 @@ Config = {}
 -- Framework: 'auto' | 'esx' | 'qb'
 Config.Framework = 'auto'
 
--- Befehl zum Öffnen des Einsatz-Konfigurators (ACE: nm_ktjobs.admin)
+-- Befehl zum Öffnen des Einsatz-Konfigurators (ACE: ktjobs.admin)
 Config.ConfiguratorCommand = 'ktjobs'
 
 -- Intervall in Sekunden, in dem Fahrzeug-Voraussetzungen geprüft werden
@@ -21,7 +21,7 @@ Config.AcceptRadius = 25.0
 -- Abstand zum Zielpunkt für Abschluss (Meter)
 Config.CompleteRadius = 15.0
 
--- NPC-Modell-Fallback für KT
+-- NPC-Modell-Fallback für KT (nur wenn im Einsatz leer)
 Config.DefaultNpcModel = 'a_m_y_business_02'
 
 -- Verfügbare Jobs im Konfigurator (Name = Framework-Job, Label = Anzeige)
@@ -30,17 +30,19 @@ Config.Jobs = {
     { name = 'fire', label = 'fire' },
 }
 
--- Fahrzeugtypen: Schlüssel = Typ im Konfigurator, Werte = Spawn-Namen
-Config.VehicleTypes = {
-    RTW = { 'ambulance', 'emsnspeedo', 'emsv' },
-    NEF = { 'emsv', 'dodgeems' },
-    KTW = { 'ambulance2', 'emsnspeedo' },
+-- Erlaubte Fahrzeugtypen (EmergencyDispatch mannedvehicles → type)
+Config.AllowedVehicleTypes = {
+    'RTW',
+    'KTW',
 }
 
 -- Postleitzahl-Ressource: 'auto' | 'nearest-postal' | 'postals' | 'none'
 Config.PostalResource = 'auto'
 
--- EmergencyDispatch Event (LoveRP)
+-- EmergencyDispatch Ressourcenname
+Config.EmergencyDispatchResource = 'emergencydispatch'
+
+-- EmergencyDispatch Event für neue Einsätze
 Config.DispatchEvent = 'emergencydispatch:emergencycall:new'
 
 -- Postleitzahl in Dispatch-Text einfügen
@@ -50,4 +52,4 @@ Config.PostalMessageTemplate = '%s (PLZ %s)'
 Config.RewardAccount = 'cash'
 
 -- Admin ACE Permission
-Config.AdminAce = 'nm_ktjobs.admin'
+Config.AdminAce = 'ktjobs.admin'

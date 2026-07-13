@@ -1,4 +1,4 @@
-# nm_ktjobs
+# ktjobs
 
 FiveM-Ressource für automatische **MTD-** (Medizinischer Transport) und **KT-** (Krankentransport) Einsätze in ruhigen Zeiten.
 
@@ -14,16 +14,17 @@ FiveM-Ressource für automatische **MTD-** (Medizinischer Transport) und **KT-**
 2. In `server.cfg` eintragen (nach Framework und EmergencyDispatch):
 
 ```
+ensure emergencydispatch
 ensure nm_ktjobs
 ```
 
 3. ACE-Berechtigung für den Konfigurator setzen:
 
 ```
-add_ace group.admin nm_ktjobs.admin allow
+add_ace group.admin ktjobs.admin allow
 ```
 
-4. `config.lua` anpassen (Jobs, Fahrzeugtypen, Intervalle)
+4. `config.lua` anpassen (Jobs, Intervalle)
 
 ## Nutzung
 
@@ -34,25 +35,36 @@ add_ace group.admin nm_ktjobs.admin allow
 ### Ablauf
 
 1. Admin konfiguriert Einsätze im Konfigurator (Typ, Job, Koordinaten, Fahrzeug-Voraussetzungen, Belohnung)
-2. Sind genügend besetzte Fahrzeuge des konfigurierten Typs im Dienst, wird der Einsatz automatisch ausgelöst
+2. Sind genügend besetzte Fahrzeuge (RTW/KTW) in EmergencyDispatch im Dienst, wird der Einsatz automatisch ausgelöst
 3. Der Dispatch erscheint in **EmergencyDispatch** inkl. Ziel-Postleitzahl
 4. Spieler mit passendem Job fahren zum Startpunkt und nehmen den Einsatz an (`E`)
 5. Transport zum Ziel und Abschluss mit `E` (Abbruch mit `BACKSPACE`)
 
+## Fahrzeugtypen
+
+Nur **RTW** und **KTW** sind erlaubt. Die Besetzung wird über den EmergencyDispatch-Export `mannedvehicles` geprüft – Spieler müssen ihr Fahrzeug in EmergencyDispatch besetzt haben.
+
 ## Konfiguration
 
-- **Fahrzeugtypen** (`Config.VehicleTypes`): Zuordnung z. B. RTW/NEF zu Spawn-Namen
 - **Jobs** (`Config.Jobs`): Auswahl im Konfigurator
+- **Fahrzeugtypen** (`Config.AllowedVehicleTypes`): `RTW`, `KTW`
 - **Postleitzahl** (`Config.PostalResource`): `auto`, `nearest-postal`, `postals` oder `none`
 
 Einsätze werden in `data/missions.json` gespeichert.
 
 ## EmergencyDispatch
 
-Einsätze werden per Event verschickt:
+**Besetzte Fahrzeuge prüfen (Server):**
+
+```lua
+exports['emergencydispatch']:mannedvehicles()
+-- type: Fahrzeugtyp (z. B. RTW, KTW), job: Job des Fahrzeugs
+```
+
+**Einsatz senden:**
 
 ```lua
 TriggerEvent('emergencydispatch:emergencycall:new', job, message, coords, false)
 ```
 
-Die Meldung enthält den Dispatch-Text und die Ziel-PLZ (z. B. `Test MTD (PLZ 8041)`).
+Die Meldung enthält den Dispatch-Text und die Ziel-PLZ (z. B. `Krankentransport (PLZ 8041)`).

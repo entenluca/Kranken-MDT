@@ -5,7 +5,7 @@ const resourceName = typeof GetParentResourceName === 'function'
 const state = {
     missions: [],
     jobs: [],
-    vehicleTypes: {},
+    vehicleTypeOptions: ['RTW', 'KTW'],
     defaultNpcModel: '',
     search: '',
     open: false,
@@ -63,7 +63,7 @@ function buildShell() {
     const header = UI.el('header', 'modal-header');
     const titleWrap = UI.el('div', 'title-wrap');
     titleWrap.appendChild(UI.el('span', 'status-dot'));
-    titleWrap.appendChild(UI.el('h1', '', { text: 'nm_ktjobs · Einsatz-Konfigurator' }));
+    titleWrap.appendChild(UI.el('h1', '', { text: 'ktjobs · Einsatz-Konfigurator' }));
     header.appendChild(titleWrap);
     header.appendChild(UI.button('btn-ghost', {
         text: 'Schließen (ESC)',
@@ -166,9 +166,15 @@ function createListRow(missionId, kind, index, data, onRemove) {
     });
 
     if (kind === 'vehicle') {
-        const typeInput = UI.input('vehicle-type', { type: 'text', placeholder: 'Fahrzeugtyp' });
-        if (data.type) typeInput.value = data.type;
-        row.appendChild(typeInput);
+        const typeItems = state.vehicleTypeOptions.map((v) => ({ value: v, label: v }));
+        const typeDropdown = UI.dropdown({
+            className: 'vehicle-type-dd',
+            items: typeItems,
+            value: data.type || '',
+            placeholder: 'Typ',
+        });
+        row._vehicleTypeDropdown = typeDropdown;
+        row.appendChild(typeDropdown.el);
 
         const minInput = UI.input('vehicle-min', {
             type: 'number',
@@ -392,10 +398,10 @@ function getMissionFromCard(card) {
     mission.npcModel = npcInput?.value ?? '';
 
     mission.vehicles = Array.from(card.querySelectorAll('.list-row[data-vehicle]')).map((row) => {
-        const type = row.querySelector('.vehicle-type')?.value.trim() ?? '';
+        const type = row._vehicleTypeDropdown?.getValue() ?? '';
         const minRaw = row.querySelector('.vehicle-min')?.value ?? '';
         return {
-            type,
+            type: type.trim(),
             min: minRaw === '' ? '' : parseInt(minRaw, 10) || 1,
         };
     }).filter((v) => v.type);
@@ -423,7 +429,7 @@ function syncFromDom() {
 function openConfigurator(data) {
     state.missions = data.missions || [];
     state.jobs = data.jobs || [];
-    state.vehicleTypes = data.vehicleTypes || {};
+    state.vehicleTypeOptions = data.vehicleTypeOptions || ['RTW', 'KTW'];
     state.defaultNpcModel = data.defaultNpcModel || '';
     state.search = '';
     state.open = true;

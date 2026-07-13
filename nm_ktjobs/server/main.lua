@@ -6,7 +6,7 @@ local function buildConfiguratorPayload()
     return {
         missions = Storage.GetMissions(),
         jobs = Config.Jobs,
-        vehicleTypes = Config.VehicleTypes,
+        vehicleTypeOptions = Config.AllowedVehicleTypes,
         defaultNpcModel = Config.DefaultNpcModel,
     }
 end
@@ -94,5 +94,5 @@ AddEventHandler('onResourceStart', function(resourceName)
         return
     end
 
-    print('[nm_ktjobs] Gestartet – Framework: ' .. Framework.name)
+    print('[ktjobs] Gestartet – Framework: ' .. Framework.name)
 end)

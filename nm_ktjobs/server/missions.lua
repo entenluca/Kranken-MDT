@@ -4,43 +4,8 @@ Missions = {
     pendingDispatch = {},
 }
 
-local function vehicleMatchesType(modelHash, vehicleType)
-    local models = Config.VehicleTypes[vehicleType]
-    if not models then
-        return false
-    end
-
-    for _, modelName in ipairs(models) do
-        if modelHash == joaat(modelName) then
-            return true
-        end
-    end
-
-    return false
-end
-
 local function getOccupiedVehicleCounts(jobName)
-    local counts = {}
-
-    for _, playerId in ipairs(GetPlayers()) do
-        local source = tonumber(playerId)
-        if Framework.GetJob(source) == jobName and Framework.IsOnDuty(source) then
-            local ped = GetPlayerPed(source)
-            if ped and ped ~= 0 then
-                local vehicle = GetVehiclePedIsIn(ped, false)
-                if vehicle and vehicle ~= 0 then
-                    local model = GetEntityModel(vehicle)
-                    for vehicleType in pairs(Config.VehicleTypes) do
-                        if vehicleMatchesType(model, vehicleType) then
-                            counts[vehicleType] = (counts[vehicleType] or 0) + 1
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    return counts
+    return EmergencyDispatch.GetMannedVehicleCounts(jobName)
 end
 
 function Missions.VehicleRequirementsMet(mission)
@@ -51,7 +16,8 @@ function Missions.VehicleRequirementsMet(mission)
     local counts = getOccupiedVehicleCounts(mission.job)
 
     for _, requirement in ipairs(mission.vehicles) do
-        local current = counts[requirement.type] or 0
+        local reqType = EmergencyDispatch.NormalizeVehicleType(requirement.type)
+        local current = counts[reqType] or 0
         if current < requirement.min then
             return false
         end
@@ -65,11 +31,12 @@ function Missions.GetVehicleStatus(mission)
     local status = {}
 
     for _, requirement in ipairs(mission.vehicles or {}) do
+        local reqType = EmergencyDispatch.NormalizeVehicleType(requirement.type)
         status[#status + 1] = {
-            type = requirement.type,
+            type = reqType,
             min = requirement.min,
-            current = counts[requirement.type] or 0,
-            met = (counts[requirement.type] or 0) >= requirement.min,
+            current = counts[reqType] or 0,
+            met = (counts[reqType] or 0) >= requirement.min,
         }
     end
 
@@ -130,7 +97,9 @@ function Missions.DispatchMission(mission)
     end
 
     local message = Dispatch.BuildMessage(mission)
-    Dispatch.Send(mission.job, message, mission.start)
+    if not Dispatch.Send(mission.job, message, mission.start) then
+        return false
+    end
 
     local activeId = Missions.CreateActive(mission)
     Missions.SetCooldown(mission.id)

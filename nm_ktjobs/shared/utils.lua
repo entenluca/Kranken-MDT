@@ -84,10 +84,22 @@ function Utils.SanitizeMission(mission)
     if type(mission.vehicles) == 'table' then
         for _, vehicle in ipairs(mission.vehicles) do
             if type(vehicle) == 'table' and vehicle.type and vehicle.type ~= '' then
-                clean.vehicles[#clean.vehicles + 1] = {
-                    type = tostring(vehicle.type),
-                    min = math.max(1, math.floor(tonumber(vehicle.min) or 1)),
-                }
+                local vehicleType = string.upper(tostring(vehicle.type))
+                local allowed = false
+
+                for _, allowedType in ipairs(Config.AllowedVehicleTypes) do
+                    if vehicleType == allowedType then
+                        allowed = true
+                        break
+                    end
+                end
+
+                if allowed then
+                    clean.vehicles[#clean.vehicles + 1] = {
+                        type = vehicleType,
+                        min = math.max(1, math.floor(tonumber(vehicle.min) or 1)),
+                    }
+                end
             end
         end
     end
