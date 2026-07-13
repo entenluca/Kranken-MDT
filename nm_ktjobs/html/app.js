@@ -1,18 +1,17 @@
-const app = document.getElementById('app');
-const missionsEl = document.getElementById('missions');
-const searchEl = document.getElementById('search');
-
-let state = {
-    missions: [],
-    jobs: [],
-    vehicleTypes: {},
-    defaultNpcModel: 'a_m_y_business_02',
-    search: '',
-};
-
 const resourceName = typeof GetParentResourceName === 'function'
     ? GetParentResourceName()
     : 'nm_ktjobs';
+
+const state = {
+    missions: [],
+    jobs: [],
+    vehicleTypes: {},
+    defaultNpcModel: '',
+    search: '',
+    open: false,
+};
+
+const refs = {};
 
 function nui(event, data = {}) {
     return fetch(`https://${resourceName}/${event}`, {
@@ -31,12 +30,12 @@ function defaultMission() {
         id: newMissionId(),
         enabled: true,
         type: 'MTD',
-        job: state.jobs[0]?.name || 'ambulance',
+        job: state.jobs[0]?.name || '',
         text: '',
-        start: { x: 0, y: 0, z: 0 },
-        target: { x: 0, y: 0, z: 0 },
-        reward: { min: 250, max: 500 },
-        npcModel: state.defaultNpcModel,
+        start: { x: '', y: '', z: '' },
+        target: { x: '', y: '', z: '' },
+        reward: { min: '', max: '' },
+        npcModel: '',
         vehicles: [],
         items: [],
     };
@@ -48,273 +47,427 @@ function filteredMissions() {
     return state.missions.filter((m) => (m.text || '').toLowerCase().includes(q));
 }
 
-function render() {
+function formatCoord(value) {
+    return value === '' || value === undefined || value === null ? '' : String(value);
+}
+
+function buildShell() {
+    const root = document.getElementById('root');
+    root.replaceChildren();
+
+    const app = UI.el('div', 'app hidden', { id: 'app' });
+    app.appendChild(UI.el('div', 'overlay'));
+
+    const modal = UI.el('div', 'modal');
+
+    const header = UI.el('header', 'modal-header');
+    const titleWrap = UI.el('div', 'title-wrap');
+    titleWrap.appendChild(UI.el('span', 'status-dot'));
+    titleWrap.appendChild(UI.el('h1', '', { text: 'nm_ktjobs · Einsatz-Konfigurator' }));
+    header.appendChild(titleWrap);
+    header.appendChild(UI.button('btn-ghost', {
+        text: 'Schließen (ESC)',
+        onClick: () => nui('close'),
+    }));
+
+    const intro = UI.el('p', 'intro', {
+        text: 'Jeder Einsatz gehört zu einem Job und wird per Dispatch verschickt. Koordinaten kannst du vor Ort übernehmen. Änderungen werden erst nach dem Speichern übernommen.',
+    });
+
+    const toolbar = UI.el('div', 'toolbar');
+    const searchWrap = UI.el('div', 'search-wrap');
+    searchWrap.appendChild(Icons.create('search', 16));
+    const searchInput = UI.input('search-input', {
+        type: 'search',
+        placeholder: 'Dispatch-Text durchsuchen…',
+    });
+    searchInput.addEventListener('input', (e) => {
+        state.search = e.target.value;
+        renderMissions();
+    });
+    searchWrap.appendChild(searchInput);
+
+    const btnNew = UI.button('btn-primary btn-with-icon', {
+        icon: 'plus',
+        text: ' Neuer Einsatz',
+        onClick: () => {
+            syncFromDom();
+            state.missions.unshift(defaultMission());
+            renderMissions();
+        },
+    });
+
+    toolbar.appendChild(searchWrap);
+    toolbar.appendChild(btnNew);
+
+    const missions = UI.el('div', 'missions');
+
+    const footer = UI.el('footer', 'modal-footer');
+    footer.appendChild(UI.button('btn-secondary', {
+        text: 'Abbrechen',
+        onClick: () => nui('close'),
+    }));
+    footer.appendChild(UI.button('btn-primary', {
+        text: 'Speichern',
+        onClick: () => {
+            syncFromDom();
+            nui('save', { missions: state.missions });
+        },
+    }));
+
+    modal.appendChild(header);
+    modal.appendChild(intro);
+    modal.appendChild(toolbar);
+    modal.appendChild(missions);
+    modal.appendChild(footer);
+    app.appendChild(modal);
+    root.appendChild(app);
+
+    refs.app = app;
+    refs.missions = missions;
+    refs.searchInput = searchInput;
+}
+
+function createCoordBlock(title, prefix, mission, missionId) {
+    const block = UI.el('div', 'coord-block');
+    block.appendChild(UI.el('h3', '', { text: title }));
+
+    const row = UI.el('div', 'coord-row');
+    ['x', 'y', 'z'].forEach((axis) => {
+        const input = UI.input(`coord-input ${prefix}-${axis}`, {
+            type: 'number',
+            step: '0.01',
+            placeholder: axis.toUpperCase(),
+        });
+        const val = formatCoord(mission[prefix]?.[axis]);
+        if (val !== '') input.value = val;
+        row.appendChild(input);
+    });
+
+    row.appendChild(UI.iconButton('btn-pos', 'pin', {
+        title: 'Position übernehmen',
+        onClick: async () => {
+            syncFromDom();
+            const result = await nui('getPosition', { field: prefix, missionId });
+            const m = state.missions.find((x) => x.id === missionId);
+            if (!m || !result) return;
+            m[prefix] = { x: result.x, y: result.y, z: result.z };
+            renderMissions();
+        },
+    }));
+
+    block.appendChild(row);
+    return block;
+}
+
+function createListRow(missionId, kind, index, data, onRemove) {
+    const row = UI.el('div', `list-row${kind === 'item' ? ' items' : ''}`, {
+        dataset: { [kind]: String(index) },
+    });
+
+    if (kind === 'vehicle') {
+        const typeInput = UI.input('vehicle-type', { type: 'text', placeholder: 'Fahrzeugtyp' });
+        if (data.type) typeInput.value = data.type;
+        row.appendChild(typeInput);
+
+        const minInput = UI.input('vehicle-min', {
+            type: 'number',
+            min: '1',
+            title: 'min. besetzt',
+            placeholder: 'Min.',
+        });
+        if (data.min !== undefined && data.min !== '') minInput.value = String(data.min);
+        row.appendChild(minInput);
+        row.appendChild(UI.iconButton('btn-check-vehicle', 'play', {
+            title: 'Status prüfen',
+            onClick: () => {
+                syncFromDom();
+                nui('checkVehicles', { missionId });
+            },
+        }));
+    } else {
+        const nameInput = UI.input('item-name', { type: 'text', placeholder: 'Item-Name' });
+        if (data.name) nameInput.value = data.name;
+        row.appendChild(nameInput);
+
+        const amountInput = UI.input('item-amount', {
+            type: 'number',
+            min: '1',
+            title: 'Menge',
+            placeholder: 'Menge',
+        });
+        if (data.amount !== undefined && data.amount !== '') amountInput.value = String(data.amount);
+        row.appendChild(amountInput);
+    }
+
+    row.appendChild(UI.iconButton('btn-remove', 'close', {
+        title: 'Entfernen',
+        onClick: onRemove,
+    }));
+
+    return row;
+}
+
+function createMissionCard(mission) {
+    const card = UI.el('article', `mission-card ${mission.type === 'KT' ? 'kt-only' : 'mtd-only'}`, {
+        dataset: { id: mission.id },
+    });
+
+    const top = UI.el('div', 'mission-top');
+
+    const toggle = UI.toggle(mission.enabled, () => {});
+    top.appendChild(toggle.el);
+
+    const typeDropdown = UI.dropdown({
+        className: 'mission-type-dd',
+        items: [
+            { value: 'MTD', label: 'MTD' },
+            { value: 'KT', label: 'KT' },
+        ],
+        value: mission.type,
+        onChange: (val) => {
+            card.classList.toggle('kt-only', val === 'KT');
+            card.classList.toggle('mtd-only', val === 'MTD');
+        },
+    });
+    top.appendChild(typeDropdown.el);
+
+    const jobDropdown = UI.dropdown({
+        className: 'mission-job-dd',
+        items: state.jobs.map((j) => ({ value: j.name, label: j.label || j.name })),
+        value: mission.job || state.jobs[0]?.name || '',
+    });
+    top.appendChild(jobDropdown.el);
+
+    top.appendChild(UI.input('mission-text', {
+        type: 'text',
+        placeholder: 'Dispatch-Text',
+    }));
+    const textInput = top.querySelector('.mission-text');
+    if (mission.text) textInput.value = mission.text;
+
+    const deleteBtn = UI.button('btn-danger btn-with-icon', {
+        icon: 'trash',
+        text: ' Löschen',
+        onClick: () => {
+            syncFromDom();
+            state.missions = state.missions.filter((m) => m.id !== mission.id);
+            renderMissions();
+        },
+    });
+    top.appendChild(deleteBtn);
+
+    card._controls = { toggle, typeDropdown, jobDropdown };
+
+    const coords = UI.el('div', 'coords-grid');
+    coords.appendChild(createCoordBlock('START', 'start', mission, mission.id));
+    coords.appendChild(createCoordBlock('ZIEL', 'target', mission, mission.id));
+    card.appendChild(top);
+    card.appendChild(coords);
+
+    const rewardSection = UI.section('REWARD');
+    const rewardRow = UI.el('div', 'reward-row');
+    const minInput = UI.input('reward-min', { type: 'number', min: '0', placeholder: 'Min' });
+    const maxInput = UI.input('reward-max', { type: 'number', min: '0', placeholder: 'Max' });
+    if (mission.reward?.min !== '' && mission.reward?.min !== undefined) minInput.value = String(mission.reward.min);
+    if (mission.reward?.max !== '' && mission.reward?.max !== undefined) maxInput.value = String(mission.reward.max);
+    rewardRow.appendChild(minInput);
+    rewardRow.appendChild(maxInput);
+    rewardSection.appendChild(rewardRow);
+    card.appendChild(rewardSection);
+
+    const npcSection = UI.section('NPC (nur bei KT)');
+    npcSection.classList.add('kt-only');
+    const npcRow = UI.el('div', 'npc-row');
+    const npcInput = UI.input('npc-model', { type: 'text', placeholder: 'NPC-Modell' });
+    npcInput.style.flex = '1';
+    if (mission.npcModel) npcInput.value = mission.npcModel;
+    npcRow.appendChild(npcInput);
+    npcSection.appendChild(npcRow);
+    card.appendChild(npcSection);
+
+    const vehicleSection = UI.section(
+        'FAHRZEUG-VORAUSSETZUNGEN',
+        'Alle Zeilen müssen erfüllt sein (mindestens so viele besetzte Fahrzeuge des Typs), damit die Mission automatisch ausgelöst wird.',
+    );
+    const vehicleList = UI.el('div', 'vehicle-list');
+    (mission.vehicles || []).forEach((v, i) => {
+        vehicleList.appendChild(createListRow(mission.id, 'vehicle', i, v, () => {
+            syncFromDom();
+            const m = state.missions.find((x) => x.id === mission.id);
+            m.vehicles.splice(i, 1);
+            renderMissions();
+        }));
+    });
+    vehicleSection.appendChild(vehicleList);
+    vehicleSection.appendChild(UI.button('btn-small btn-secondary btn-with-icon', {
+        icon: 'plus',
+        text: ' Fahrzeug',
+        onClick: () => {
+            syncFromDom();
+            const m = state.missions.find((x) => x.id === mission.id);
+            m.vehicles.push({ type: '', min: '' });
+            renderMissions();
+        },
+    }));
+    card.appendChild(vehicleSection);
+
+    const itemSection = UI.section(
+        'MTD-ITEMS',
+        'Items werden bei Annahme vergeben und bei Abschluss oder Abbruch entfernt.',
+    );
+    itemSection.classList.add('mtd-only');
+    const itemList = UI.el('div', 'item-list');
+    (mission.items || []).forEach((item, i) => {
+        itemList.appendChild(createListRow(mission.id, 'item', i, item, () => {
+            syncFromDom();
+            const m = state.missions.find((x) => x.id === mission.id);
+            m.items.splice(i, 1);
+            renderMissions();
+        }));
+    });
+    itemSection.appendChild(itemList);
+    itemSection.appendChild(UI.button('btn-small btn-secondary btn-with-icon', {
+        icon: 'plus',
+        text: ' Item',
+        onClick: () => {
+            syncFromDom();
+            const m = state.missions.find((x) => x.id === mission.id);
+            m.items.push({ name: '', amount: '' });
+            renderMissions();
+        },
+    }));
+    card.appendChild(itemSection);
+
+    return card;
+}
+
+function renderMissions() {
     const list = filteredMissions();
+    refs.missions.replaceChildren();
 
     if (!list.length) {
-        missionsEl.innerHTML = '<div class="empty">Keine Einsätze vorhanden. Lege einen neuen an.</div>';
+        refs.missions.appendChild(UI.el('div', 'empty', {
+            text: 'Keine Einsätze vorhanden. Lege einen neuen an.',
+        }));
         return;
     }
 
-    missionsEl.innerHTML = list.map((mission) => renderMission(mission)).join('');
-    bindMissionEvents();
+    list.forEach((mission) => {
+        refs.missions.appendChild(createMissionCard(mission));
+    });
 }
 
-function renderMission(mission) {
-    const typeClass = mission.type === 'KT' ? 'kt-only' : 'mtd-only';
-    const jobOptions = state.jobs.map((j) =>
-        `<option value="${j.name}" ${j.name === mission.job ? 'selected' : ''}>${j.label || j.name}</option>`
-    ).join('');
-
-    const vehicles = (mission.vehicles || []).map((v, i) => `
-        <div class="list-row" data-mission="${mission.id}" data-vehicle="${i}">
-            <input type="text" class="vehicle-type" value="${escapeHtml(v.type || '')}" placeholder="RTW" />
-            <input type="number" class="vehicle-min" min="1" value="${v.min || 1}" title="min. besetzt" />
-            <button type="button" class="btn-icon btn-check-vehicle" title="Status prüfen">▶</button>
-            <button type="button" class="btn-icon btn-remove-vehicle" title="Entfernen">✕</button>
-        </div>
-    `).join('');
-
-    const items = (mission.items || []).map((item, i) => `
-        <div class="list-row items" data-mission="${mission.id}" data-item="${i}">
-            <input type="text" class="item-name" value="${escapeHtml(item.name || '')}" placeholder="medikit" />
-            <input type="number" class="item-amount" min="1" value="${item.amount || 1}" title="Menge" />
-            <button type="button" class="btn-icon btn-remove-item" title="Entfernen">✕</button>
-        </div>
-    `).join('');
-
-    return `
-        <article class="mission-card ${typeClass}" data-id="${mission.id}">
-            <div class="mission-top">
-                <label class="toggle" title="Aktiv">
-                    <input type="checkbox" class="mission-enabled" ${mission.enabled ? 'checked' : ''} />
-                    <span class="slider"></span>
-                </label>
-                <select class="mission-type">
-                    <option value="MTD" ${mission.type === 'MTD' ? 'selected' : ''}>MTD</option>
-                    <option value="KT" ${mission.type === 'KT' ? 'selected' : ''}>KT</option>
-                </select>
-                <select class="mission-job">${jobOptions}</select>
-                <input type="text" class="mission-text" value="${escapeHtml(mission.text || '')}" placeholder="Dispatch-Text" />
-                <button type="button" class="btn-danger btn-delete">Löschen</button>
-            </div>
-
-            <div class="coords-grid">
-                <div class="coord-block">
-                    <h3>START</h3>
-                    <div class="coord-row">
-                        <input type="number" step="0.01" class="start-x" value="${mission.start?.x ?? 0}" placeholder="X" />
-                        <input type="number" step="0.01" class="start-y" value="${mission.start?.y ?? 0}" placeholder="Y" />
-                        <input type="number" step="0.01" class="start-z" value="${mission.start?.z ?? 0}" placeholder="Z" />
-                        <button type="button" class="btn-icon btn-pos" data-field="start" title="Position übernehmen">📍</button>
-                    </div>
-                </div>
-                <div class="coord-block">
-                    <h3>ZIEL</h3>
-                    <div class="coord-row">
-                        <input type="number" step="0.01" class="target-x" value="${mission.target?.x ?? 0}" placeholder="X" />
-                        <input type="number" step="0.01" class="target-y" value="${mission.target?.y ?? 0}" placeholder="Y" />
-                        <input type="number" step="0.01" class="target-z" value="${mission.target?.z ?? 0}" placeholder="Z" />
-                        <button type="button" class="btn-icon btn-pos" data-field="target" title="Position übernehmen">📍</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="section">
-                <h3>REWARD</h3>
-                <div class="reward-row">
-                    <input type="number" class="reward-min" min="0" value="${mission.reward?.min ?? 0}" placeholder="Min" />
-                    <input type="number" class="reward-max" min="0" value="${mission.reward?.max ?? 0}" placeholder="Max" />
-                </div>
-            </div>
-
-            <div class="section kt-only">
-                <h3>NPC (nur bei KT)</h3>
-                <div class="npc-row">
-                    <input type="text" class="npc-model" value="${escapeHtml(mission.npcModel || state.defaultNpcModel)}" placeholder="a_m_y_business_02" style="flex:1" />
-                </div>
-            </div>
-
-            <div class="section">
-                <h3>FAHRZEUG-VORAUSSETZUNGEN</h3>
-                <p class="hint">Alle Zeilen müssen erfüllt sein (mindestens so viele besetzte Fahrzeuge des Typs), damit die Mission automatisch ausgelöst wird.</p>
-                <div class="vehicle-list">${vehicles}</div>
-                <button type="button" class="btn-small btn-secondary btn-add-vehicle">+ Fahrzeug</button>
-            </div>
-
-            <div class="section mtd-only">
-                <h3>MTD-ITEMS</h3>
-                <p class="hint">Items werden bei Annahme vergeben und bei Abschluss oder Abbruch entfernt.</p>
-                <div class="item-list">${items}</div>
-                <button type="button" class="btn-small btn-secondary btn-add-item">+ Item</button>
-            </div>
-        </article>
-    `;
+function readCoord(card, prefix) {
+    const read = (axis) => {
+        const el = card.querySelector(`.${prefix}-${axis}`);
+        const raw = el?.value ?? '';
+        if (raw === '') return '';
+        const num = parseFloat(raw);
+        return Number.isNaN(num) ? '' : num;
+    };
+    return { x: read('x'), y: read('y'), z: read('z') };
 }
 
-function escapeHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
-
-function getMissionFromDom(card) {
+function getMissionFromCard(card) {
     const id = card.dataset.id;
     const mission = state.missions.find((m) => m.id === id) || defaultMission();
+    const controls = card._controls;
 
-    mission.enabled = card.querySelector('.mission-enabled').checked;
-    mission.type = card.querySelector('.mission-type').value;
-    mission.job = card.querySelector('.mission-job').value;
-    mission.text = card.querySelector('.mission-text').value;
-    mission.start = {
-        x: parseFloat(card.querySelector('.start-x').value) || 0,
-        y: parseFloat(card.querySelector('.start-y').value) || 0,
-        z: parseFloat(card.querySelector('.start-z').value) || 0,
-    };
-    mission.target = {
-        x: parseFloat(card.querySelector('.target-x').value) || 0,
-        y: parseFloat(card.querySelector('.target-y').value) || 0,
-        z: parseFloat(card.querySelector('.target-z').value) || 0,
-    };
+    mission.enabled = controls?.toggle ? controls.toggle.getValue() : true;
+    mission.type = controls?.typeDropdown ? controls.typeDropdown.getValue() : 'MTD';
+    mission.job = controls?.jobDropdown ? controls.jobDropdown.getValue() : '';
+    mission.text = card.querySelector('.mission-text')?.value ?? '';
+    mission.start = readCoord(card, 'start');
+    mission.target = readCoord(card, 'target');
+
+    const minRaw = card.querySelector('.reward-min')?.value ?? '';
+    const maxRaw = card.querySelector('.reward-max')?.value ?? '';
     mission.reward = {
-        min: parseInt(card.querySelector('.reward-min').value, 10) || 0,
-        max: parseInt(card.querySelector('.reward-max').value, 10) || 0,
+        min: minRaw === '' ? '' : parseInt(minRaw, 10) || 0,
+        max: maxRaw === '' ? '' : parseInt(maxRaw, 10) || 0,
     };
 
     const npcInput = card.querySelector('.npc-model');
-    if (npcInput) mission.npcModel = npcInput.value;
+    mission.npcModel = npcInput?.value ?? '';
 
-    mission.vehicles = Array.from(card.querySelectorAll('.list-row[data-vehicle]')).map((row) => ({
-        type: row.querySelector('.vehicle-type').value.trim(),
-        min: parseInt(row.querySelector('.vehicle-min').value, 10) || 1,
-    })).filter((v) => v.type);
+    mission.vehicles = Array.from(card.querySelectorAll('.list-row[data-vehicle]')).map((row) => {
+        const type = row.querySelector('.vehicle-type')?.value.trim() ?? '';
+        const minRaw = row.querySelector('.vehicle-min')?.value ?? '';
+        return {
+            type,
+            min: minRaw === '' ? '' : parseInt(minRaw, 10) || 1,
+        };
+    }).filter((v) => v.type);
 
-    mission.items = Array.from(card.querySelectorAll('.list-row[data-item]')).map((row) => ({
-        name: row.querySelector('.item-name').value.trim(),
-        amount: parseInt(row.querySelector('.item-amount').value, 10) || 1,
-    })).filter((i) => i.name);
+    mission.items = Array.from(card.querySelectorAll('.list-row[data-item]')).map((row) => {
+        const name = row.querySelector('.item-name')?.value.trim() ?? '';
+        const amountRaw = row.querySelector('.item-amount')?.value ?? '';
+        return {
+            name,
+            amount: amountRaw === '' ? '' : parseInt(amountRaw, 10) || 1,
+        };
+    }).filter((i) => i.name);
 
     return mission;
 }
 
 function syncFromDom() {
     document.querySelectorAll('.mission-card').forEach((card) => {
-        const mission = getMissionFromDom(card);
+        const mission = getMissionFromCard(card);
         const idx = state.missions.findIndex((m) => m.id === mission.id);
         if (idx >= 0) state.missions[idx] = mission;
     });
 }
 
-function bindMissionEvents() {
-    document.querySelectorAll('.mission-card').forEach((card) => {
-        const id = card.dataset.id;
-
-        card.querySelector('.btn-delete')?.addEventListener('click', () => {
-            syncFromDom();
-            state.missions = state.missions.filter((m) => m.id !== id);
-            render();
-        });
-
-        card.querySelector('.mission-type')?.addEventListener('change', (e) => {
-            card.classList.toggle('kt-only', e.target.value === 'KT');
-            card.classList.toggle('mtd-only', e.target.value === 'MTD');
-        });
-
-        card.querySelectorAll('.btn-pos').forEach((btn) => {
-            btn.addEventListener('click', async () => {
-                syncFromDom();
-                const result = await nui('getPosition', { field: btn.dataset.field, missionId: id });
-                const mission = state.missions.find((m) => m.id === id);
-                if (!mission || !result) return;
-
-                if (result.field === 'start') {
-                    mission.start = { x: result.x, y: result.y, z: result.z };
-                } else {
-                    mission.target = { x: result.x, y: result.y, z: result.z };
-                }
-                render();
-            });
-        });
-
-        card.querySelector('.btn-add-vehicle')?.addEventListener('click', () => {
-            syncFromDom();
-            const mission = state.missions.find((m) => m.id === id);
-            if (!mission) return;
-            mission.vehicles.push({ type: 'RTW', min: 1 });
-            render();
-        });
-
-        card.querySelector('.btn-add-item')?.addEventListener('click', () => {
-            syncFromDom();
-            const mission = state.missions.find((m) => m.id === id);
-            if (!mission) return;
-            mission.items.push({ name: 'medikit', amount: 1 });
-            render();
-        });
-
-        card.querySelectorAll('.btn-remove-vehicle').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                syncFromDom();
-                const mission = state.missions.find((m) => m.id === id);
-                const index = parseInt(btn.closest('.list-row').dataset.vehicle, 10);
-                mission.vehicles.splice(index, 1);
-                render();
-            });
-        });
-
-        card.querySelectorAll('.btn-remove-item').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                syncFromDom();
-                const mission = state.missions.find((m) => m.id === id);
-                const index = parseInt(btn.closest('.list-row').dataset.item, 10);
-                mission.items.splice(index, 1);
-                render();
-            });
-        });
-
-        card.querySelectorAll('.btn-check-vehicle').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                syncFromDom();
-                nui('checkVehicles', { missionId: id });
-            });
-        });
-    });
-}
-
 function openConfigurator(data) {
     state.missions = data.missions || [];
-    state.jobs = data.jobs || [{ name: 'ambulance', label: 'ambulance' }];
+    state.jobs = data.jobs || [];
     state.vehicleTypes = data.vehicleTypes || {};
-    state.defaultNpcModel = data.defaultNpcModel || 'a_m_y_business_02';
+    state.defaultNpcModel = data.defaultNpcModel || '';
     state.search = '';
-    searchEl.value = '';
-    app.classList.remove('hidden');
-    render();
+    state.open = true;
+
+    refs.searchInput.value = '';
+    refs.app.classList.remove('hidden');
+    renderMissions();
 }
 
 function closeConfigurator() {
-    app.classList.add('hidden');
+    state.open = false;
+    refs.app.classList.add('hidden');
+    document.querySelectorAll('.dropdown.open').forEach((d) => d.classList.remove('open'));
 }
 
-document.getElementById('btn-close').addEventListener('click', () => nui('close'));
-document.getElementById('btn-cancel').addEventListener('click', () => nui('close'));
-document.getElementById('btn-save').addEventListener('click', () => {
-    syncFromDom();
-    nui('save', { missions: state.missions });
-});
+function updateVehicleStatus(missionId, status) {
+    const card = document.querySelector(`.mission-card[data-id="${missionId}"]`);
+    if (!card) return;
 
-document.getElementById('btn-new').addEventListener('click', () => {
-    syncFromDom();
-    state.missions.unshift(defaultMission());
-    render();
-});
+    const heading = card.querySelector('.section h3');
+    if (!heading) return;
 
-searchEl.addEventListener('input', (e) => {
-    state.search = e.target.value;
-    render();
-});
+    const iconName = (met) => (met ? 'check' : 'cross');
+    let badge = card.querySelector('.vehicle-status');
+
+    if (!badge) {
+        badge = UI.el('span', 'vehicle-status');
+        heading.appendChild(document.createTextNode(' '));
+        heading.appendChild(badge);
+    }
+
+    badge.replaceChildren();
+    badge.className = `status-badge vehicle-status ${status.every((s) => s.met) ? 'ok' : 'fail'}`;
+
+    status.forEach((s, idx) => {
+        if (idx > 0) badge.appendChild(document.createTextNode(' · '));
+        const line = UI.el('span', 'status-line');
+        line.appendChild(document.createTextNode(`${s.type}: ${s.current}/${s.min} `));
+        line.appendChild(Icons.create(iconName(s.met), 12));
+        badge.appendChild(line);
+    });
+}
+
+buildShell();
 
 window.addEventListener('message', (event) => {
     const { action, data } = event.data || {};
@@ -323,29 +476,13 @@ window.addEventListener('message', (event) => {
     if (action === 'close') closeConfigurator();
     if (action === 'saved' && data?.missions) {
         state.missions = data.missions;
-        render();
+        renderMissions();
     }
     if (action === 'vehicleStatus' && data?.status) {
-        const card = document.querySelector(`.mission-card[data-id="${data.missionId}"]`);
-        if (!card) return;
-
-        const hint = card.querySelector('.section h3');
-        const lines = data.status.map((s) =>
-            `${s.type}: ${s.current}/${s.min} ${s.met ? '✓' : '✗'}`
-        ).join(' · ');
-
-        let badge = card.querySelector('.vehicle-status');
-        if (!badge) {
-            badge = document.createElement('span');
-            badge.className = 'status-badge vehicle-status';
-            hint.appendChild(document.createTextNode(' '));
-            hint.appendChild(badge);
-        }
-        badge.textContent = lines;
-        badge.className = `status-badge vehicle-status ${data.status.every((s) => s.met) ? 'ok' : 'fail'}`;
+        updateVehicleStatus(data.missionId, data.status);
     }
 });
 
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') nui('close');
+    if (e.key === 'Escape' && state.open) nui('close');
 });

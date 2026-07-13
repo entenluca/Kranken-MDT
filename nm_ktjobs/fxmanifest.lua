@@ -33,6 +33,8 @@ ui_page 'html/index.html'
 files {
     'html/index.html',
     'html/style.css',
+    'html/icons.js',
+    'html/components.js',
     'html/app.js',
     'data/missions.json',
 }

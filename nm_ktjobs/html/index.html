@@ -3,40 +3,13 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>nm_ktjobs · Einsatz-Konfigurator</title>
+    <title>nm_ktjobs</title>
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div id="app" class="hidden">
-        <div class="overlay"></div>
-        <div class="modal">
-            <header class="modal-header">
-                <div class="title-wrap">
-                    <span class="status-dot"></span>
-                    <h1>nm_ktjobs · Einsatz-Konfigurator</h1>
-                </div>
-                <button type="button" class="btn-ghost" id="btn-close">Schließen (ESC)</button>
-            </header>
-
-            <p class="intro">
-                Jeder Einsatz gehört zu einem Job und wird per Dispatch verschickt. Koordinaten kannst du vor Ort übernehmen.
-                Änderungen werden erst nach dem Speichern übernommen.
-            </p>
-
-            <div class="toolbar">
-                <input type="search" id="search" placeholder="Dispatch-Text durchsuchen…" />
-                <button type="button" class="btn-primary" id="btn-new">+ Neuer Einsatz</button>
-            </div>
-
-            <div class="missions" id="missions"></div>
-
-            <footer class="modal-footer">
-                <button type="button" class="btn-secondary" id="btn-cancel">Abbrechen</button>
-                <button type="button" class="btn-primary" id="btn-save">Speichern</button>
-            </footer>
-        </div>
-    </div>
-
+    <div id="root"></div>
+    <script src="icons.js"></script>
+    <script src="components.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

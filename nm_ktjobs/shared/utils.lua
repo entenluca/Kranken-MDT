@@ -25,8 +25,8 @@ function Utils.DefaultMission()
         text = '',
         start = { x = 0.0, y = 0.0, z = 0.0 },
         target = { x = 0.0, y = 0.0, z = 0.0 },
-        reward = { min = 250, max = 500 },
-        npcModel = Config.DefaultNpcModel,
+        reward = { min = 0, max = 0 },
+        npcModel = '',
         vehicles = {},
         items = {},
     }
@@ -78,7 +78,7 @@ function Utils.SanitizeMission(mission)
     clean.start = mission.start or clean.start
     clean.target = mission.target or clean.target
     clean.reward = Utils.ClampReward(mission.reward or clean.reward)
-    clean.npcModel = type(mission.npcModel) == 'string' and mission.npcModel or Config.DefaultNpcModel
+    clean.npcModel = type(mission.npcModel) == 'string' and mission.npcModel or ''
 
     clean.vehicles = {}
     if type(mission.vehicles) == 'table' then

@@ -30,7 +30,7 @@ body {
     display: none !important;
 }
 
-#app {
+.app {
     position: fixed;
     inset: 0;
     display: flex;
@@ -97,8 +97,27 @@ body {
     padding: 16px 22px;
 }
 
-.toolbar input[type="search"] {
+.search-wrap {
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--input-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 0 10px;
+}
+
+.search-wrap .icon {
+    color: var(--muted);
+    flex-shrink: 0;
+}
+
+.search-input {
+    flex: 1;
+    border: none !important;
+    background: transparent !important;
+    padding: 8px 0 !important;
 }
 
 .missions {
@@ -119,7 +138,7 @@ body {
 
 .mission-top {
     display: grid;
-    grid-template-columns: auto 100px 140px 1fr auto;
+    grid-template-columns: auto 110px 150px 1fr auto;
     gap: 10px;
     align-items: center;
     margin-bottom: 14px;
@@ -166,6 +185,90 @@ body {
     transform: translateX(20px);
 }
 
+.dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.dropdown-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--input-bg);
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.dropdown-trigger:hover,
+.dropdown.open .dropdown-trigger {
+    border-color: var(--primary);
+}
+
+.dropdown-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.dropdown-chevron {
+    flex-shrink: 0;
+    color: var(--muted);
+    transition: transform 0.15s;
+}
+
+.dropdown.open .dropdown-chevron {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: #151d2b;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.dropdown.open .dropdown-menu {
+    display: block;
+}
+
+.dropdown-item {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.88rem;
+    cursor: pointer;
+}
+
+.dropdown-item:hover {
+    background: #243044;
+}
+
+.dropdown-item.selected {
+    background: rgba(59, 130, 246, 0.15);
+    color: #93c5fd;
+}
+
 .coords-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -199,6 +302,10 @@ body {
     color: var(--muted);
     letter-spacing: 0.05em;
     margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
 }
 
 .section p.hint {
@@ -218,6 +325,11 @@ body {
 .reward-row input,
 .npc-row input {
     width: 120px;
+}
+
+.npc-row input {
+    flex: 1;
+    width: auto;
 }
 
 .list-row {
@@ -241,13 +353,11 @@ body {
 }
 
 input,
-select,
 button {
     font: inherit;
 }
 
-input,
-select {
+input {
     background: var(--input-bg);
     border: 1px solid var(--panel-border);
     color: var(--text);
@@ -256,10 +366,13 @@ select {
     font-size: 0.88rem;
 }
 
-input:focus,
-select:focus {
+input:focus {
     outline: none;
     border-color: var(--primary);
+}
+
+input::placeholder {
+    color: #5c6b7e;
 }
 
 button {
@@ -284,15 +397,27 @@ button {
     color: var(--text);
 }
 
+.btn-secondary:hover {
+    background: #4b5563;
+}
+
 .btn-ghost {
     background: transparent;
     color: var(--muted);
+}
+
+.btn-ghost:hover {
+    color: var(--text);
 }
 
 .btn-danger {
     background: transparent;
     color: var(--danger);
     border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.btn-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
 }
 
 .btn-icon {
@@ -304,11 +429,28 @@ button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+}
+
+.btn-icon:hover {
+    background: #2f3f56;
+    color: #fff;
+}
+
+.btn-with-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .btn-small {
     padding: 6px 10px;
     font-size: 0.8rem;
+}
+
+.icon {
+    display: block;
+    flex-shrink: 0;
 }
 
 .status-badge {
@@ -317,6 +459,10 @@ button {
     border-radius: 999px;
     background: #243044;
     color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
 }
 
 .status-badge.ok {
@@ -325,6 +471,12 @@ button {
 
 .status-badge.fail {
     color: var(--danger);
+}
+
+.status-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
 }
 
 .empty {

@@ -1,0 +1,144 @@
+const UI = {
+    el(tag, className, props = {}) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        Object.entries(props).forEach(([key, value]) => {
+            if (key === 'text') node.textContent = value;
+            else if (key === 'html') node.innerHTML = value;
+            else if (key === 'dataset') {
+                Object.entries(value).forEach(([k, v]) => { node.dataset[k] = v; });
+            } else if (key.startsWith('on') && typeof value === 'function') {
+                node.addEventListener(key.slice(2).toLowerCase(), value);
+            } else {
+                node.setAttribute(key, value);
+            }
+        });
+        return node;
+    },
+
+    input(className, attrs = {}) {
+        const input = this.el('input', className);
+        Object.entries(attrs).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) input.setAttribute(key, value);
+        });
+        return input;
+    },
+
+    button(className, options = {}) {
+        const btn = this.el('button', className, { type: options.type || 'button' });
+        if (options.title) btn.title = options.title;
+        if (options.icon) btn.appendChild(Icons.create(options.icon, options.iconSize || 18));
+        if (options.text) btn.appendChild(document.createTextNode(options.text));
+        if (options.onClick) btn.addEventListener('click', options.onClick);
+        return btn;
+    },
+
+    iconButton(className, icon, options = {}) {
+        return this.button(`${className} btn-icon`, {
+            icon,
+            iconSize: options.iconSize || 16,
+            title: options.title,
+            onClick: options.onClick,
+        });
+    },
+
+    section(title, hint) {
+        const wrap = this.el('div', 'section');
+        const heading = this.el('h3', '', { text: title });
+        wrap.appendChild(heading);
+        if (hint) wrap.appendChild(this.el('p', 'hint', { text: hint }));
+        return wrap;
+    },
+
+    toggle(checked, onChange) {
+        const label = this.el('label', 'toggle', { title: 'Aktiv' });
+        const input = this.input('', { type: 'checkbox' });
+        input.checked = checked;
+        input.addEventListener('change', () => onChange(input.checked));
+        const slider = this.el('span', 'slider');
+        label.appendChild(input);
+        label.appendChild(slider);
+        return { el: label, getValue: () => input.checked, setValue: (v) => { input.checked = v; } };
+    },
+
+    dropdown(options) {
+        const {
+            items,
+            value,
+            onChange,
+            className = '',
+            placeholder = 'Auswählen',
+        } = options;
+
+        let current = value ?? (items[0]?.value ?? '');
+        const root = UI.el('div', `dropdown ${className}`.trim());
+        const trigger = UI.el('button', 'dropdown-trigger', { type: 'button' });
+        const label = UI.el('span', 'dropdown-label');
+        const chevron = Icons.create('chevron', 16);
+        chevron.classList.add('dropdown-chevron');
+        const menu = UI.el('div', 'dropdown-menu');
+
+        const getLabel = (val) => items.find((i) => i.value === val)?.label ?? placeholder;
+
+        const renderLabel = () => {
+            label.textContent = getLabel(current);
+        };
+
+        const close = () => {
+            root.classList.remove('open');
+        };
+
+        const open = () => {
+            document.querySelectorAll('.dropdown.open').forEach((d) => {
+                if (d !== root) d.classList.remove('open');
+            });
+            root.classList.add('open');
+        };
+
+        const setValue = (val, silent) => {
+            current = val;
+            renderLabel();
+            menu.querySelectorAll('.dropdown-item').forEach((item) => {
+                item.classList.toggle('selected', item.dataset.value === val);
+            });
+            if (!silent && onChange) onChange(val);
+        };
+
+        items.forEach((item) => {
+            const option = UI.el('button', 'dropdown-item', {
+                type: 'button',
+                dataset: { value: item.value },
+                text: item.label,
+            });
+            if (item.value === current) option.classList.add('selected');
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                setValue(item.value);
+                close();
+            });
+            menu.appendChild(option);
+        });
+
+        trigger.appendChild(label);
+        trigger.appendChild(chevron);
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            root.classList.contains('open') ? close() : open();
+        });
+
+        root.appendChild(trigger);
+        root.appendChild(menu);
+        renderLabel();
+
+        return {
+            el: root,
+            getValue: () => current,
+            setValue,
+            close,
+        };
+    },
+};
+
+document.addEventListener('click', () => {
+    document.querySelectorAll('.dropdown.open').forEach((d) => d.classList.remove('open'));
+});
