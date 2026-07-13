@@ -5,6 +5,7 @@ const resourceName = typeof GetParentResourceName === 'function'
 const state = {
     missions: [],
     jobs: [],
+    displayTitle: 'Krankentransport-Jobs',
     vehicleTypeOptions: ['RTW', 'KTW'],
     defaultNpcModel: '',
     search: '',
@@ -63,7 +64,7 @@ function buildShell() {
     const header = UI.el('header', 'modal-header');
     const titleWrap = UI.el('div', 'title-wrap');
     titleWrap.appendChild(UI.el('span', 'status-dot'));
-    titleWrap.appendChild(UI.el('h1', '', { text: 'ktjobs · Einsatz-Konfigurator' }));
+    titleWrap.appendChild(UI.el('h1', '', { text: `${state.displayTitle} · Einsatz-Konfigurator` }));
     header.appendChild(titleWrap);
     header.appendChild(UI.button('btn-ghost', {
         text: 'Schließen (ESC)',
@@ -430,6 +431,7 @@ function openConfigurator(data) {
     state.missions = data.missions || [];
     state.jobs = data.jobs || [];
     state.vehicleTypeOptions = data.vehicleTypeOptions || ['RTW', 'KTW'];
+    state.displayTitle = data.displayTitle || 'Krankentransport-Jobs';
     state.defaultNpcModel = data.defaultNpcModel || '';
     state.search = '';
     state.open = true;

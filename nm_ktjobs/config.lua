@@ -3,6 +3,9 @@ Config = {}
 -- Framework: 'auto' | 'esx' | 'qb'
 Config.Framework = 'auto'
 
+-- Anzeigename in der UI
+Config.DisplayTitle = 'Krankentransport-Jobs'
+
 -- Befehl zum Öffnen des Einsatz-Konfigurators (ACE: ktjobs.admin)
 Config.ConfiguratorCommand = 'ktjobs'
 

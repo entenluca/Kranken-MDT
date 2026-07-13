@@ -8,6 +8,7 @@ local function buildConfiguratorPayload()
         jobs = Config.Jobs,
         vehicleTypeOptions = Config.AllowedVehicleTypes,
         defaultNpcModel = Config.DefaultNpcModel,
+        displayTitle = Config.DisplayTitle,
     }
 end
 
