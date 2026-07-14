@@ -68,6 +68,23 @@ if IsDuplicityVersion() then
         return true
     end
 
+    function Framework.IsAdmin(source)
+        local player = Framework.GetPlayer(source)
+        if not player then
+            return false
+        end
+
+        if Framework.name == 'esx' then
+            local group = player.getGroup and player.getGroup() or nil
+            return group == 'admin' or group == 'superadmin'
+        elseif Framework.name == 'qb' then
+            return Framework.object.Functions.HasPermission(source, 'god')
+                or Framework.object.Functions.HasPermission(source, 'admin')
+        end
+
+        return false
+    end
+
     function Framework.AddSocietyMoney(jobName, amount)
         if not jobName or amount <= 0 then
             return false

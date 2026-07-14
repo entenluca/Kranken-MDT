@@ -1,5 +1,15 @@
 local function isAdmin(source)
-    return IsPlayerAceAllowed(source, Config.AdminAce)
+    for _, ace in ipairs(Config.AdminAces) do
+        if IsPlayerAceAllowed(source, ace) then
+            return true
+        end
+    end
+
+    if Config.AllowFrameworkAdmins and Framework.IsAdmin(source) then
+        return true
+    end
+
+    return false
 end
 
 local function buildConfiguratorPayload()

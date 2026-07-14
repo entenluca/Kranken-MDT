@@ -18,11 +18,16 @@ ensure emergencydispatch
 ensure nm_ktjobs
 ```
 
-3. ACE-Berechtigung für den Konfigurator setzen:
+3. Optional ACE-Berechtigung (falls kein Framework-Admin / kein EmergencyDispatch-Admin):
 
 ```
 add_ace group.admin ktjobs.admin allow
 ```
+
+Bereits berechtigt sind standardmäßig:
+- `emergencydispatch.admin`
+- ESX `admin` / `superadmin`
+- QB `god` / `admin`
 
 4. `config.lua` anpassen (Jobs, Intervalle)
 

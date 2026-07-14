@@ -57,5 +57,11 @@ Config.SocietyPrefix = 'society_'
 -- Gesellschaftskonto-Ressource: 'auto' | 'esx_addonaccount' | 'qb-management' | 'qb-banking'
 Config.SocietyResource = 'auto'
 
--- Admin ACE Permission
-Config.AdminAce = 'ktjobs.admin'
+-- Berechtigungen für den Konfigurator (eine davon reicht)
+Config.AdminAces = {
+    'ktjobs.admin',
+    'emergencydispatch.admin',
+}
+
+-- Zusätzlich Framework-Admins erlauben (ESX admin/superadmin, QB god/admin)
+Config.AllowFrameworkAdmins = true
