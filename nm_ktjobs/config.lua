@@ -51,8 +51,11 @@ Config.DispatchEvent = 'emergencydispatch:emergencycall:new'
 -- Postleitzahl in Dispatch-Text einfügen
 Config.PostalMessageTemplate = '%s (PLZ %s)'
 
--- Belohnung: 'cash' | 'bank' (Framework-abhängig)
-Config.RewardAccount = 'cash'
+-- Gesellschaftskonto-Präfix (ESX: society_<job>)
+Config.SocietyPrefix = 'society_'
+
+-- Gesellschaftskonto-Ressource: 'auto' | 'esx_addonaccount' | 'qb-management' | 'qb-banking'
+Config.SocietyResource = 'auto'
 
 -- Admin ACE Permission
 Config.AdminAce = 'ktjobs.admin'

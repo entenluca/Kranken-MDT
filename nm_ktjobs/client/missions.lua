@@ -94,7 +94,7 @@ RegisterNetEvent('nm_ktjobs:client:missionAccepted', function(activeId, mission)
     Framework.Notify('Einsatz angenommen. Fahre zum Ziel.', 'success')
 end)
 
-RegisterNetEvent('nm_ktjobs:client:missionEnded', function(activeId, state, reward)
+RegisterNetEvent('nm_ktjobs:client:missionEnded', function(activeId, state, reward, job)
     pendingMissions[activeId] = nil
 
     if state == 'taken' then
@@ -109,7 +109,11 @@ RegisterNetEvent('nm_ktjobs:client:missionEnded', function(activeId, state, rewa
     cleanupMission()
 
     if state == 'completed' then
-        Framework.Notify(('Transport abgeschlossen. Belohnung: $%s'):format(reward), 'success')
+        if reward and reward > 0 then
+            Framework.Notify(('Transport abgeschlossen. $%s auf Geschäftskonto (%s) gutgeschrieben.'):format(reward, job or ''), 'success')
+        else
+            Framework.Notify('Transport abgeschlossen.', 'success')
+        end
     end
 end)
 

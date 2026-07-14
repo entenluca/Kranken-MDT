@@ -34,11 +34,15 @@ add_ace group.admin ktjobs.admin allow
 
 ### Ablauf
 
-1. Admin konfiguriert Einsätze im Konfigurator (Typ, Job, Koordinaten, Fahrzeug-Voraussetzungen, Belohnung)
+1. Admin konfiguriert Einsätze im Konfigurator (Typ, Job, Koordinaten, Fahrzeug-Voraussetzungen, optionale Belohnung)
 2. Sind genügend besetzte Fahrzeuge (RTW/KTW) in EmergencyDispatch im Dienst, wird der Einsatz automatisch ausgelöst
 3. Der Dispatch erscheint in **EmergencyDispatch** inkl. Ziel-Postleitzahl
 4. Spieler mit passendem Job fahren zum Startpunkt und nehmen den Einsatz an (`E`)
 5. Transport zum Ziel und Abschluss mit `E` (Abbruch mit `BACKSPACE`)
+
+## Belohnung
+
+Pro Einsatz kann im Konfigurator aktiviert werden, ob eine Belohnung ausgezahlt wird. Der Betrag (Min/Max) wird bei Abschluss **auf das Geschäftskonto des eingestellten Jobs** gutgeschrieben (ESX: `esx_addonaccount`, QB: `qb-management` / `qb-banking`).
 
 ## Fahrzeugtypen
 

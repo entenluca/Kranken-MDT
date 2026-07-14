@@ -68,6 +68,51 @@ if IsDuplicityVersion() then
         return true
     end
 
+    function Framework.AddSocietyMoney(jobName, amount)
+        if not jobName or amount <= 0 then
+            return false
+        end
+
+        if Framework.name == 'esx' then
+            local societyName = Config.SocietyPrefix .. jobName
+
+            if Config.SocietyResource == 'auto' or Config.SocietyResource == 'esx_addonaccount' then
+                if GetResourceState('esx_addonaccount') == 'started' then
+                    TriggerEvent('esx_addonaccount:getSharedAccount', societyName, function(account)
+                        if account then
+                            account.addMoney(amount)
+                        end
+                    end)
+                    return true
+                end
+            end
+
+            return false
+        elseif Framework.name == 'qb' then
+            if Config.SocietyResource == 'auto' or Config.SocietyResource == 'qb-management' then
+                if GetResourceState('qb-management') == 'started' then
+                    exports['qb-management']:AddMoney(jobName, amount)
+                    return true
+                end
+            end
+
+            if Config.SocietyResource == 'auto' or Config.SocietyResource == 'qb-banking' then
+                if GetResourceState('qb-banking') == 'started' then
+                    local ok = pcall(function()
+                        exports['qb-banking']:AddMoney(jobName, amount, 'Krankentransport-Jobs')
+                    end)
+                    if ok then
+                        return true
+                    end
+                end
+            end
+
+            return false
+        end
+
+        return false
+    end
+
     function Framework.AddMoney(source, amount)
         local player = Framework.GetPlayer(source)
         if not player or amount <= 0 then

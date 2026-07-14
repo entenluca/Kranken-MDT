@@ -63,9 +63,15 @@ end)
 
 RegisterNetEvent('nm_ktjobs:server:completeMission', function(activeId)
     local source = source
-    local ok, reward = Missions.CompleteMission(source, activeId)
-    if ok then
-        Framework.Notify(source, ('Einsatz abgeschlossen. Belohnung: $%s'):format(reward), 'success')
+    local ok, reward, job = Missions.CompleteMission(source, activeId)
+    if not ok then
+        return
+    end
+
+    if reward > 0 then
+        Framework.Notify(source, ('Einsatz abgeschlossen. $%s auf Geschäftskonto (%s) gutgeschrieben.'):format(reward, job or ''), 'success')
+    else
+        Framework.Notify(source, 'Einsatz abgeschlossen.', 'success')
     end
 end)
 

@@ -25,7 +25,7 @@ function Utils.DefaultMission()
         text = '',
         start = { x = 0.0, y = 0.0, z = 0.0 },
         target = { x = 0.0, y = 0.0, z = 0.0 },
-        reward = { min = 0, max = 0 },
+        reward = { enabled = false, min = 0, max = 0 },
         npcModel = '',
         vehicles = {},
         items = {},
@@ -56,6 +56,24 @@ function Utils.ClampReward(reward)
     return { min = min, max = max }
 end
 
+function Utils.SanitizeReward(reward)
+    local clean = { enabled = false, min = 0, max = 0 }
+
+    if type(reward) ~= 'table' then
+        return clean
+    end
+
+    clean.enabled = reward.enabled == true
+
+    if clean.enabled then
+        local clamped = Utils.ClampReward(reward)
+        clean.min = clamped.min
+        clean.max = clamped.max
+    end
+
+    return clean
+end
+
 function Utils.RandomReward(reward)
     reward = Utils.ClampReward(reward)
     if reward.min == reward.max then
@@ -77,7 +95,7 @@ function Utils.SanitizeMission(mission)
     clean.text = type(mission.text) == 'string' and mission.text or ''
     clean.start = mission.start or clean.start
     clean.target = mission.target or clean.target
-    clean.reward = Utils.ClampReward(mission.reward or clean.reward)
+    clean.reward = Utils.SanitizeReward(mission.reward or clean.reward)
     clean.npcModel = type(mission.npcModel) == 'string' and mission.npcModel or ''
 
     clean.vehicles = {}

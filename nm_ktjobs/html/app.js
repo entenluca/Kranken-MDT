@@ -35,7 +35,7 @@ function defaultMission() {
         text: '',
         start: { x: '', y: '', z: '' },
         target: { x: '', y: '', z: '' },
-        reward: { min: '', max: '' },
+        reward: { enabled: false, min: '', max: '' },
         npcModel: '',
         vehicles: [],
         items: [],
@@ -264,24 +264,45 @@ function createMissionCard(mission) {
     });
     top.appendChild(deleteBtn);
 
-    card._controls = { toggle, typeDropdown, jobDropdown };
-
     const coords = UI.el('div', 'coords-grid');
     coords.appendChild(createCoordBlock('START', 'start', mission, mission.id));
     coords.appendChild(createCoordBlock('ZIEL', 'target', mission, mission.id));
     card.appendChild(top);
     card.appendChild(coords);
 
-    const rewardSection = UI.section('REWARD');
-    const rewardRow = UI.el('div', 'reward-row');
+    const rewardSection = UI.section(
+        'BELOHNUNG',
+        'Optional. Bei Aktivierung wird der Betrag auf das Geschäftskonto des eingestellten Jobs gutgeschrieben.',
+    );
+
+    const rewardEnableRow = UI.el('div', 'reward-enable-row');
+    const rewardToggle = UI.toggle(mission.reward?.enabled === true, () => {});
+    rewardEnableRow.appendChild(UI.el('span', 'reward-label', { text: 'Belohnung aktivieren' }));
+    rewardEnableRow.appendChild(rewardToggle.el);
+    rewardSection.appendChild(rewardEnableRow);
+
+    const rewardRow = UI.el('div', 'reward-row reward-amount-row');
     const minInput = UI.input('reward-min', { type: 'number', min: '0', placeholder: 'Min' });
     const maxInput = UI.input('reward-max', { type: 'number', min: '0', placeholder: 'Max' });
     if (mission.reward?.min !== '' && mission.reward?.min !== undefined) minInput.value = String(mission.reward.min);
     if (mission.reward?.max !== '' && mission.reward?.max !== undefined) maxInput.value = String(mission.reward.max);
+
+    const syncRewardFields = () => {
+        const enabled = rewardToggle.getValue();
+        minInput.disabled = !enabled;
+        maxInput.disabled = !enabled;
+        rewardRow.classList.toggle('is-disabled', !enabled);
+    };
+
+    rewardToggle.el.querySelector('input').addEventListener('change', syncRewardFields);
+    syncRewardFields();
+
     rewardRow.appendChild(minInput);
     rewardRow.appendChild(maxInput);
     rewardSection.appendChild(rewardRow);
     card.appendChild(rewardSection);
+
+    card._controls = { toggle, typeDropdown, jobDropdown, rewardToggle };
 
     const npcSection = UI.section('NPC (nur bei KT)');
     npcSection.classList.add('kt-only');
@@ -390,7 +411,9 @@ function getMissionFromCard(card) {
 
     const minRaw = card.querySelector('.reward-min')?.value ?? '';
     const maxRaw = card.querySelector('.reward-max')?.value ?? '';
+    const rewardEnabled = controls?.rewardToggle ? controls.rewardToggle.getValue() : false;
     mission.reward = {
+        enabled: rewardEnabled,
         min: minRaw === '' ? '' : parseInt(minRaw, 10) || 0,
         max: maxRaw === '' ? '' : parseInt(maxRaw, 10) || 0,
     };

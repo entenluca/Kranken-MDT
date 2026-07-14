@@ -134,13 +134,18 @@ function Missions.CompleteMission(source, activeId)
         return false
     end
 
-    local reward = Utils.RandomReward(active.mission.reward)
-    Framework.AddMoney(source, reward)
+    local rewardAmount = 0
+
+    if active.mission.reward.enabled then
+        rewardAmount = Utils.RandomReward(active.mission.reward)
+        Framework.AddSocietyMoney(active.mission.job, rewardAmount)
+    end
+
     Missions.RemoveMissionItems(source, active.mission)
     Missions.RemoveActive(activeId)
 
-    TriggerClientEvent('nm_ktjobs:client:missionEnded', source, activeId, 'completed', reward)
-    return true, reward
+    TriggerClientEvent('nm_ktjobs:client:missionEnded', source, activeId, 'completed', rewardAmount, active.mission.job)
+    return true, rewardAmount, active.mission.job
 end
 
 function Missions.CancelMission(source, activeId)
