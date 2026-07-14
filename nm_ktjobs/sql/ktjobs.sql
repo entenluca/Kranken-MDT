@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS `ktjobs_missions` (
+    `id` VARCHAR(64) NOT NULL,
+    `sort_order` INT NOT NULL DEFAULT 0,
+    `enabled` TINYINT(1) NOT NULL DEFAULT 1,
+    `mission_type` VARCHAR(8) NOT NULL DEFAULT 'MTD',
+    `job` VARCHAR(64) NOT NULL DEFAULT 'ambulance',
+    `dispatch_text` VARCHAR(255) NOT NULL DEFAULT '',
+    `start_x` DOUBLE NOT NULL DEFAULT 0,
+    `start_y` DOUBLE NOT NULL DEFAULT 0,
+    `start_z` DOUBLE NOT NULL DEFAULT 0,
+    `target_x` DOUBLE NOT NULL DEFAULT 0,
+    `target_y` DOUBLE NOT NULL DEFAULT 0,
+    `target_z` DOUBLE NOT NULL DEFAULT 0,
+    `reward_enabled` TINYINT(1) NOT NULL DEFAULT 0,
+    `reward_min` INT NOT NULL DEFAULT 0,
+    `reward_max` INT NOT NULL DEFAULT 0,
+    `npc_model` VARCHAR(64) NOT NULL DEFAULT '',
+    `vehicles` LONGTEXT,
+    `items` LONGTEXT,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

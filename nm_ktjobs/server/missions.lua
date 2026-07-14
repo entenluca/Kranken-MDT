@@ -161,6 +161,8 @@ function Missions.CancelMission(source, activeId)
 end
 
 CreateThread(function()
+    Storage.WaitUntilReady()
+
     while true do
         Wait(Config.CheckInterval * 1000)
 

@@ -24,6 +24,8 @@ end
 
 RegisterNetEvent('nm_ktjobs:server:requestConfigurator', function()
     local source = source
+    Storage.WaitUntilReady()
+
     if not isAdmin(source) then
         Framework.Notify(source, 'Keine Berechtigung für den Einsatz-Konfigurator.', 'error')
         return
@@ -34,6 +36,8 @@ end)
 
 RegisterNetEvent('nm_ktjobs:server:saveMissions', function(missions)
     local source = source
+    Storage.WaitUntilReady()
+
     if not isAdmin(source) then
         return
     end
@@ -111,5 +115,8 @@ AddEventHandler('onResourceStart', function(resourceName)
         return
     end
 
-    print('[ktjobs] Gestartet – Framework: ' .. Framework.name)
+    print(('[ktjobs] Gestartet – Framework: %s | DB: %s'):format(
+        Framework.name,
+        Database.ready and Database.driver or 'nicht bereit'
+    ))
 end)

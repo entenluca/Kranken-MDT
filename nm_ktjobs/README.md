@@ -6,17 +6,23 @@ FiveM-Ressource für automatische **MTD-** (Medizinischer Transport) und **KT-**
 
 - [EmergencyDispatch](https://loverp-scripts.de/) (LoveRP)
 - ESX (`es_extended`) oder QB-Core (`qb-core`)
+- **oxmysql** (empfohlen) oder `mysql-async`
 - Optional: `nearest-postal` oder `postals` für Ziel-Postleitzahlen
 
 ## Installation
 
 1. Ordner `nm_ktjobs` in deinen `resources`-Ordner legen
-2. In `server.cfg` eintragen (nach Framework und EmergencyDispatch):
+2. In `server.cfg` eintragen (nach Framework, MySQL und EmergencyDispatch):
 
 ```
+ensure oxmysql
 ensure emergencydispatch
 ensure nm_ktjobs
 ```
+
+Die SQL-Tabelle wird beim Start **automatisch** angelegt (`sql/ktjobs.sql`). Ein manueller Import ist nicht nötig.
+
+Bestehende Einsätze aus `data/missions.json` werden einmalig in die Datenbank übernommen, wenn die Tabelle noch leer ist.
 
 3. Optional ACE-Berechtigung (falls kein Framework-Admin / kein EmergencyDispatch-Admin):
 
@@ -59,7 +65,7 @@ Nur **RTW** und **KTW** sind erlaubt. Die Besetzung wird über den EmergencyDisp
 - **Fahrzeugtypen** (`Config.AllowedVehicleTypes`): `RTW`, `KTW`
 - **Postleitzahl** (`Config.PostalResource`): `auto`, `nearest-postal`, `postals` oder `none`
 
-Einsätze werden in `data/missions.json` gespeichert.
+Einsätze werden in der MySQL-Tabelle **`ktjobs_missions`** gespeichert.
 
 ## EmergencyDispatch
 

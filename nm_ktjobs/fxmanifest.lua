@@ -8,6 +8,10 @@ version '1.0.0'
 
 lua54 'yes'
 
+dependencies {
+    'oxmysql',
+}
+
 shared_scripts {
     'config.lua',
     'shared/utils.lua',
@@ -22,8 +26,10 @@ client_scripts {
 }
 
 server_scripts {
+    '@oxmysql/lib/MySQL.lua',
     'bridge/emergencydispatch.lua',
     'bridge/dispatch.lua',
+    'server/database.lua',
     'server/storage.lua',
     'server/missions.lua',
     'server/main.lua',
@@ -37,5 +43,6 @@ files {
     'html/icons.js',
     'html/components.js',
     'html/app.js',
+    'sql/ktjobs.sql',
     'data/missions.json',
 }

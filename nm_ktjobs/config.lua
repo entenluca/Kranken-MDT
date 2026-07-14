@@ -57,6 +57,12 @@ Config.SocietyPrefix = 'society_'
 -- Gesellschaftskonto-Ressource: 'auto' | 'esx_addonaccount' | 'qb-management' | 'qb-banking'
 Config.SocietyResource = 'auto'
 
+-- Datenbank: 'auto' | 'oxmysql' | 'mysql-async'
+Config.Database = 'auto'
+
+-- Tabellenname für Einsätze
+Config.DatabaseTable = 'ktjobs_missions'
+
 -- Berechtigungen für den Konfigurator (eine davon reicht)
 Config.AdminAces = {
     'ktjobs.admin',

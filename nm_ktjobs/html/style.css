@@ -339,6 +339,11 @@ body.scrollbar-dragging .custom-scrollbar-thumb {
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
     max-height: 200px;
     overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.dropdown-menu::-webkit-scrollbar {
+    display: none;
 }
 
 .dropdown.open .dropdown-menu {
