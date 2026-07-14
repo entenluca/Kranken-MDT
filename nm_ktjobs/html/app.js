@@ -10,6 +10,7 @@ const state = {
     defaultNpcModel: '',
     search: '',
     open: false,
+    collapsed: new Set(),
 };
 
 const refs = {};
@@ -93,7 +94,9 @@ function buildShell() {
         text: ' Neuer Einsatz',
         onClick: () => {
             syncFromDom();
-            state.missions.unshift(defaultMission());
+            const mission = defaultMission();
+            state.collapsed.delete(mission.id);
+            state.missions.unshift(mission);
             renderMissions();
         },
     });
@@ -101,7 +104,15 @@ function buildShell() {
     toolbar.appendChild(searchWrap);
     toolbar.appendChild(btnNew);
 
-    const missions = UI.el('div', 'missions');
+    const missionsWrap = UI.el('div', 'missions-wrap');
+    const missionsViewport = UI.el('div', 'missions-viewport');
+    const missions = UI.el('div', 'missions-list');
+    const scrollbarTrack = UI.el('div', 'custom-scrollbar hidden');
+    const scrollbarThumb = UI.el('div', 'custom-scrollbar-thumb');
+    scrollbarTrack.appendChild(scrollbarThumb);
+    missionsViewport.appendChild(missions);
+    missionsWrap.appendChild(missionsViewport);
+    missionsWrap.appendChild(scrollbarTrack);
 
     const footer = UI.el('footer', 'modal-footer');
     footer.appendChild(UI.button('btn-secondary', {
@@ -119,14 +130,19 @@ function buildShell() {
     modal.appendChild(header);
     modal.appendChild(intro);
     modal.appendChild(toolbar);
-    modal.appendChild(missions);
+    modal.appendChild(missionsWrap);
     modal.appendChild(footer);
     app.appendChild(modal);
     root.appendChild(app);
 
     refs.app = app;
     refs.missions = missions;
+    refs.missionsViewport = missionsViewport;
+    refs.scrollbarTrack = scrollbarTrack;
+    refs.scrollbarThumb = scrollbarThumb;
     refs.searchInput = searchInput;
+
+    refs.scrollbar = CustomScrollbar.attach(missionsViewport, scrollbarTrack, scrollbarThumb);
 }
 
 function createCoordBlock(title, prefix, mission, missionId) {
@@ -215,15 +231,74 @@ function createListRow(missionId, kind, index, data, onRemove) {
     return row;
 }
 
+function missionSummary(mission) {
+    const text = (mission.text || '').trim() || 'Neuer Einsatz';
+    const job = mission.job || '—';
+    return `${mission.type || 'MTD'} · ${job} · ${text}`;
+}
+
+function toggleMissionCollapsed(missionId) {
+    if (state.collapsed.has(missionId)) {
+        state.collapsed.delete(missionId);
+    } else {
+        state.collapsed.add(missionId);
+    }
+}
+
 function createMissionCard(mission) {
-    const card = UI.el('article', `mission-card ${mission.type === 'KT' ? 'kt-only' : 'mtd-only'}`, {
+    const isCollapsed = state.collapsed.has(mission.id);
+    const card = UI.el('article', `mission-card ${mission.type === 'KT' ? 'kt-only' : 'mtd-only'}${isCollapsed ? ' is-collapsed' : ''}`, {
         dataset: { id: mission.id },
     });
 
-    const top = UI.el('div', 'mission-top');
+    const cardHeader = UI.el('div', 'mission-card-header');
+    const collapseBtn = UI.iconButton('btn-collapse', 'chevronRight', {
+        title: isCollapsed ? 'Einsatz aufklappen' : 'Einsatz einklappen',
+    });
+    collapseBtn.querySelector('.icon').classList.add('collapse-icon');
 
+    const summary = UI.el('span', 'mission-summary', { text: missionSummary(mission) });
     const toggle = UI.toggle(mission.enabled, () => {});
-    top.appendChild(toggle.el);
+    toggle.el.title = 'Aktiv';
+
+    const deleteBtn = UI.iconButton('btn-delete-header', 'trash', {
+        title: 'Einsatz löschen',
+        onClick: (e) => {
+            e.stopPropagation();
+            syncFromDom();
+            state.missions = state.missions.filter((m) => m.id !== mission.id);
+            state.collapsed.delete(mission.id);
+            renderMissions();
+        },
+    });
+
+    cardHeader.appendChild(collapseBtn);
+    cardHeader.appendChild(summary);
+    cardHeader.appendChild(toggle.el);
+    cardHeader.appendChild(deleteBtn);
+
+    collapseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        syncFromDom();
+        toggleMissionCollapsed(mission.id);
+        renderMissions();
+    });
+
+    cardHeader.addEventListener('click', () => {
+        syncFromDom();
+        toggleMissionCollapsed(mission.id);
+        renderMissions();
+    });
+
+    [toggle.el, deleteBtn].forEach((el) => {
+        el.addEventListener('click', (e) => e.stopPropagation());
+    });
+
+    card.appendChild(cardHeader);
+
+    const body = UI.el('div', 'mission-card-body');
+
+    const top = UI.el('div', 'mission-top');
 
     const typeDropdown = UI.dropdown({
         className: 'mission-type-dd',
@@ -253,22 +328,12 @@ function createMissionCard(mission) {
     const textInput = top.querySelector('.mission-text');
     if (mission.text) textInput.value = mission.text;
 
-    const deleteBtn = UI.button('btn-danger btn-with-icon', {
-        icon: 'trash',
-        text: ' Löschen',
-        onClick: () => {
-            syncFromDom();
-            state.missions = state.missions.filter((m) => m.id !== mission.id);
-            renderMissions();
-        },
-    });
-    top.appendChild(deleteBtn);
+    body.appendChild(top);
 
     const coords = UI.el('div', 'coords-grid');
     coords.appendChild(createCoordBlock('START', 'start', mission, mission.id));
     coords.appendChild(createCoordBlock('ZIEL', 'target', mission, mission.id));
-    card.appendChild(top);
-    card.appendChild(coords);
+    body.appendChild(coords);
 
     const rewardSection = UI.section(
         'BELOHNUNG',
@@ -300,7 +365,7 @@ function createMissionCard(mission) {
     rewardRow.appendChild(minInput);
     rewardRow.appendChild(maxInput);
     rewardSection.appendChild(rewardRow);
-    card.appendChild(rewardSection);
+    body.appendChild(rewardSection);
 
     card._controls = { toggle, typeDropdown, jobDropdown, rewardToggle };
 
@@ -312,7 +377,7 @@ function createMissionCard(mission) {
     if (mission.npcModel) npcInput.value = mission.npcModel;
     npcRow.appendChild(npcInput);
     npcSection.appendChild(npcRow);
-    card.appendChild(npcSection);
+    body.appendChild(npcSection);
 
     const vehicleSection = UI.section(
         'FAHRZEUG-VORAUSSETZUNGEN',
@@ -338,7 +403,7 @@ function createMissionCard(mission) {
             renderMissions();
         },
     }));
-    card.appendChild(vehicleSection);
+    body.appendChild(vehicleSection);
 
     const itemSection = UI.section(
         'MTD-ITEMS',
@@ -365,8 +430,9 @@ function createMissionCard(mission) {
             renderMissions();
         },
     }));
-    card.appendChild(itemSection);
+    body.appendChild(itemSection);
 
+    card.appendChild(body);
     return card;
 }
 
@@ -378,12 +444,15 @@ function renderMissions() {
         refs.missions.appendChild(UI.el('div', 'empty', {
             text: 'Keine Einsätze vorhanden. Lege einen neuen an.',
         }));
+        refs.scrollbar?.update();
         return;
     }
 
     list.forEach((mission) => {
         refs.missions.appendChild(createMissionCard(mission));
     });
+
+    requestAnimationFrame(() => refs.scrollbar?.update());
 }
 
 function readCoord(card, prefix) {

@@ -120,25 +120,122 @@ body {
     padding: 8px 0 !important;
 }
 
-.missions {
+.missions-wrap {
+    position: relative;
     flex: 1;
-    overflow-y: auto;
+    min-height: 0;
+    display: flex;
     padding: 0 22px 16px;
+    gap: 10px;
+}
+
+.missions-viewport {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-right: 4px;
+}
+
+.missions-viewport::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.missions-list {
     display: flex;
     flex-direction: column;
     gap: 14px;
+}
+
+.custom-scrollbar {
+    width: 8px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 999px;
+    position: relative;
+    align-self: stretch;
+    margin: 2px 0;
+}
+
+.custom-scrollbar-thumb {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    background: linear-gradient(180deg, #4b6a9b, var(--primary));
+    border-radius: 999px;
+    cursor: grab;
+    min-height: 36px;
+    transition: background 0.15s;
+}
+
+.custom-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #5b7ab0, var(--primary-hover));
+}
+
+body.scrollbar-dragging .custom-scrollbar-thumb {
+    cursor: grabbing;
 }
 
 .mission-card {
     background: var(--panel);
     border: 1px solid var(--panel-border);
     border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.mission-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background 0.15s;
+}
+
+.mission-card-header:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.mission-card:not(.is-collapsed) .mission-card-header {
+    border-bottom-color: var(--panel-border);
+}
+
+.mission-summary {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.collapse-icon {
+    transition: transform 0.2s ease;
+    color: var(--muted);
+}
+
+.mission-card:not(.is-collapsed) .collapse-icon {
+    transform: rotate(90deg);
+}
+
+.mission-card-body {
     padding: 16px;
+}
+
+.mission-card.is-collapsed .mission-card-body {
+    display: none;
 }
 
 .mission-top {
     display: grid;
-    grid-template-columns: auto 110px 150px 1fr auto;
+    grid-template-columns: 110px 150px 1fr;
     gap: 10px;
     align-items: center;
     margin-bottom: 14px;
@@ -506,10 +603,6 @@ button {
 }
 
 .empty {
-    text-align: center;
-    color: var(--muted);
-    padding: 40px 0;
-}
     text-align: center;
     color: var(--muted);
     padding: 40px 0;

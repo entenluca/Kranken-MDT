@@ -143,6 +143,77 @@ const UI = {
     },
 };
 
+const CustomScrollbar = {
+    attach(viewport, track, thumb) {
+        let dragging = false;
+        let dragStartY = 0;
+        let dragStartScroll = 0;
+
+        const update = () => {
+            const contentHeight = viewport.scrollHeight;
+            const viewHeight = viewport.clientHeight;
+
+            if (contentHeight <= viewHeight + 1) {
+                track.classList.add('hidden');
+                return;
+            }
+
+            track.classList.remove('hidden');
+            const ratio = viewHeight / contentHeight;
+            const thumbHeight = Math.max(36, viewHeight * ratio);
+            const maxThumbTop = viewHeight - thumbHeight;
+            const scrollRatio = viewport.scrollTop / (contentHeight - viewHeight);
+            const thumbTop = maxThumbTop * scrollRatio;
+
+            thumb.style.height = `${thumbHeight}px`;
+            thumb.style.transform = `translateY(${thumbTop}px)`;
+        };
+
+        viewport.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update);
+
+        track.addEventListener('mousedown', (e) => {
+            if (e.target === thumb) return;
+            const rect = track.getBoundingClientRect();
+            const thumbHeight = thumb.offsetHeight;
+            const clickY = e.clientY - rect.top;
+            const maxThumbTop = viewport.clientHeight - thumbHeight;
+            const targetTop = Math.max(0, Math.min(maxThumbTop, clickY - thumbHeight / 2));
+            const scrollRatio = maxThumbTop > 0 ? targetTop / maxThumbTop : 0;
+            viewport.scrollTop = scrollRatio * (viewport.scrollHeight - viewport.clientHeight);
+            update();
+        });
+
+        thumb.addEventListener('mousedown', (e) => {
+            dragging = true;
+            dragStartY = e.clientY;
+            dragStartScroll = viewport.scrollTop;
+            document.body.classList.add('scrollbar-dragging');
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            const contentHeight = viewport.scrollHeight;
+            const viewHeight = viewport.clientHeight;
+            const thumbHeight = thumb.offsetHeight;
+            const maxThumbTop = viewHeight - thumbHeight;
+            const maxScroll = contentHeight - viewHeight;
+            const deltaY = e.clientY - dragStartY;
+            const scrollDelta = maxThumbTop > 0 ? (deltaY / maxThumbTop) * maxScroll : 0;
+            viewport.scrollTop = dragStartScroll + scrollDelta;
+            update();
+        });
+
+        document.addEventListener('mouseup', () => {
+            dragging = false;
+            document.body.classList.remove('scrollbar-dragging');
+        });
+
+        return { update };
+    },
+};
+
 document.addEventListener('click', () => {
     document.querySelectorAll('.dropdown.open').forEach((d) => d.classList.remove('open'));
 });
