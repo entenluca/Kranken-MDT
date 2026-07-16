@@ -702,6 +702,16 @@ function registerMissionMenus()
                 end,
             },
             {
+                title = 'Einsatz speichern',
+                icon = 'floppy-disk',
+                onSelect = function()
+                    if saveMissions() then
+                        registerMissionMenus()
+                        lib.showContext('ktjobs_mission_' .. missionId)
+                    end
+                end,
+            },
+            {
                 title = 'Einsatz löschen',
                 icon = 'trash',
                 onSelect = function()
