@@ -27,30 +27,46 @@ local function buildConfiguratorPayload()
     }
 end
 
+lib.callback.register('ktjobs:getConfiguratorData', function(source)
+    Storage.WaitUntilReady()
+
+    if not isAdmin(source) then
+        return nil
+    end
+
+    return buildConfiguratorPayload()
+end)
+
+lib.callback.register('ktjobs:saveMissions', function(source, missions)
+    Storage.WaitUntilReady()
+
+    if not isAdmin(source) then
+        return false
+    end
+
+    Storage.SetMissions(missions)
+    return true
+end)
+
+lib.callback.register('ktjobs:getVehicleStatus', function(source, mission)
+    if not isAdmin(source) or type(mission) ~= 'table' then
+        return nil
+    end
+
+    mission = Utils.SanitizeMission(mission, VehicleTypes.GetForJob(Jobs.ResolveJob(mission.job)))
+    mission.job = Jobs.ResolveJob(mission.job)
+
+    return Missions.GetVehicleStatus(mission)
+end)
+
 RegisterNetEvent('nm_ktjobs:server:requestConfigurator', function()
     local source = source
-    Storage.WaitUntilReady()
-    Jobs.WaitUntilReady()
-
     if not isAdmin(source) then
         Framework.Notify(source, 'Keine Berechtigung für den Einsatz-Konfigurator.', 'error')
         return
     end
 
-    TriggerClientEvent('nm_ktjobs:client:openConfigurator', source, buildConfiguratorPayload())
-end)
-
-RegisterNetEvent('nm_ktjobs:server:saveMissions', function(missions)
-    local source = source
-    Storage.WaitUntilReady()
-
-    if not isAdmin(source) then
-        return
-    end
-
-    Storage.SetMissions(missions)
-    Framework.Notify(source, 'Einsätze gespeichert.', 'success')
-    TriggerClientEvent('nm_ktjobs:client:configSaved', source, Storage.GetMissions())
+    TriggerClientEvent('nm_ktjobs:client:openConfigurator', source)
 end)
 
 RegisterNetEvent('nm_ktjobs:server:arrivedAtStart', function(activeId)
@@ -78,26 +94,20 @@ RegisterNetEvent('nm_ktjobs:server:cancelMission', function(activeId)
     end
 end)
 
-RegisterNetEvent('nm_ktjobs:server:vehicleStatus', function(missionId, missionPayload)
+RegisterNetEvent('nm_ktjobs:server:vehicleStatus', function(_, missionPayload)
     local source = source
     if not isAdmin(source) then
         return
     end
 
-    local mission
-
-    if type(missionPayload) == 'table' then
-        mission = Utils.SanitizeMission(missionPayload, VehicleTypes.GetForJob(Jobs.ResolveJob(missionPayload.job)))
-        mission.job = Jobs.ResolveJob(mission.job)
-    else
-        mission = Storage.GetMissionById(missionId)
-    end
-
-    if not mission then
+    if type(missionPayload) ~= 'table' then
         return
     end
 
-    TriggerClientEvent('nm_ktjobs:client:vehicleStatus', source, missionId, Missions.GetVehicleStatus(mission))
+    local mission = Utils.SanitizeMission(missionPayload, VehicleTypes.GetForJob(Jobs.ResolveJob(missionPayload.job)))
+    mission.job = Jobs.ResolveJob(mission.job)
+
+    TriggerClientEvent('nm_ktjobs:client:vehicleStatus', source, mission.id, Missions.GetVehicleStatus(mission))
 end)
 
 AddEventHandler('onResourceStart', function(resourceName)

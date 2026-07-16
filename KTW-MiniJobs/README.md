@@ -4,6 +4,7 @@ FiveM-Ressource für automatische **MTD-** (Medizinischer Transport) und **KT-**
 
 ## Voraussetzungen
 
+- [ox_lib](https://github.com/overextended/ox_lib)
 - [EmergencyDispatch](https://loverp-scripts.de/) (LoveRP)
 - ESX (`es_extended`) oder QB-Core (`qb-core`)
 - **oxmysql** (empfohlen) oder `mysql-async`
@@ -12,9 +13,10 @@ FiveM-Ressource für automatische **MTD-** (Medizinischer Transport) und **KT-**
 ## Installation
 
 1. Ordner `KTW-MiniJobs` in deinen `resources`-Ordner legen
-2. In `server.cfg` eintragen (nach Framework, MySQL und EmergencyDispatch):
+2. In `server.cfg` eintragen (nach Framework, ox_lib, MySQL und EmergencyDispatch):
 
 ```
+ensure ox_lib
 ensure oxmysql
 ensure emergencydispatch
 ensure KTW-MiniJobs
@@ -41,7 +43,9 @@ Bereits berechtigt sind standardmäßig:
 
 | Befehl | Beschreibung |
 |--------|--------------|
-| `/ktjobs` | Öffnet den In-Game Einsatz-Konfigurator (Admin) |
+| `/ktjobs` | Öffnet den **ox_lib** Einsatz-Konfigurator (Admin) |
+
+Der Konfigurator nutzt **ox_lib Context-Menüs** und **Input-Dialoge** – keine eigene NUI mehr.
 
 ### Ablauf (über EmergencyDispatch)
 

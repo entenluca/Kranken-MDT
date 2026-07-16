@@ -3,5 +3,9 @@ CreateThread(function()
 end)
 
 RegisterCommand(Config.ConfiguratorCommand, function()
-    TriggerServerEvent('nm_ktjobs:server:requestConfigurator')
+    OpenConfigurator()
 end, false)
+
+RegisterNetEvent('nm_ktjobs:client:openConfigurator', function()
+    OpenConfigurator()
+end)
