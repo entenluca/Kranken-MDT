@@ -4,7 +4,7 @@ game 'gta5'
 name 'KTW-MiniJobs'
 description 'Automatische MTD- und Krankentransporte mit Einsatz-Konfigurator'
 author ''
-version '2.0.0'
+version '2.0.1'
 
 lua54 'yes'
 
@@ -33,7 +33,6 @@ client_scripts {
 }
 
 server_scripts {
-    '@ox_lib/init.lua',
     '@oxmysql/lib/MySQL.lua',
     'bridge/emergencydispatch.lua',
     'bridge/dispatch.lua',
