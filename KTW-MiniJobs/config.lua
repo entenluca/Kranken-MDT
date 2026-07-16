@@ -27,11 +27,8 @@ Config.CompleteRadius = 15.0
 -- NPC-Modell-Fallback für KT (nur wenn im Einsatz leer)
 Config.DefaultNpcModel = 'a_m_y_business_02'
 
--- Erlaubte Fahrzeugtypen (EmergencyDispatch mannedvehicles → type)
-Config.AllowedVehicleTypes = {
-    'RTW',
-    'KTW',
-}
+-- EMD-Fahrzeugtypen-Tabelle (EmergencyDispatch Administration)
+Config.EmdVehicleTypesTable = 'emd_vehicletypes'
 
 -- Postleitzahl-Ressource: 'auto' | 'nearest-postal' | 'postals' | 'none'
 Config.PostalResource = 'auto'

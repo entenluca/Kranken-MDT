@@ -15,7 +15,7 @@ local function waitForDatabase()
 end
 
 local function rowToMission(row)
-    return Utils.SanitizeMission({
+    local mission = {
         id = row.id,
         enabled = row.enabled == 1 or row.enabled == true,
         type = row.mission_type,
@@ -31,11 +31,13 @@ local function rowToMission(row)
         npcModel = row.npc_model,
         vehicles = json.decode(row.vehicles or '[]') or {},
         items = json.decode(row.items or '[]') or {},
-    })
+    }
+
+    return Utils.SanitizeMission(mission, VehicleTypes.GetForJob(mission.job))
 end
 
 local function missionToParams(mission, sortOrder)
-    mission = Utils.SanitizeMission(mission)
+    mission = Utils.SanitizeMission(mission, VehicleTypes.GetForJob(mission.job))
 
     return {
         mission.id,
@@ -81,6 +83,7 @@ end
 
 function Storage.Load()
     waitForDatabase()
+    VehicleTypes.WaitUntilReady()
 
     local rows = Database.Query(([[
         SELECT *
@@ -153,8 +156,11 @@ end
 function Storage.SetMissions(missions)
     waitForDatabase()
     Jobs.WaitUntilReady()
+    VehicleTypes.WaitUntilReady()
 
-    missions = Utils.SanitizeMissions(missions)
+    missions = Utils.SanitizeMissions(missions, function(mission)
+        return VehicleTypes.GetForJob(Jobs.ResolveJob(mission.job))
+    end)
     local ids = {}
 
     for index, mission in ipairs(missions) do

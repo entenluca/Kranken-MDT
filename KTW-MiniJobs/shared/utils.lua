@@ -122,7 +122,7 @@ function Utils.RandomReward(reward)
     return math.random(reward.min, reward.max)
 end
 
-function Utils.SanitizeMission(mission)
+function Utils.SanitizeMission(mission, allowedTypes)
     local clean = Utils.DefaultMission()
     if type(mission) ~= 'table' then
         return clean
@@ -140,19 +140,18 @@ function Utils.SanitizeMission(mission)
 
     clean.vehicles = {}
     if type(mission.vehicles) == 'table' then
+        local allowedMap = {}
+        if type(allowedTypes) == 'table' then
+            for _, allowedType in ipairs(allowedTypes) do
+                allowedMap[string.upper(tostring(allowedType))] = true
+            end
+        end
+
         for _, vehicle in ipairs(mission.vehicles) do
             if type(vehicle) == 'table' and vehicle.type and vehicle.type ~= '' then
                 local vehicleType = string.upper(tostring(vehicle.type))
-                local allowed = false
 
-                for _, allowedType in ipairs(Config.AllowedVehicleTypes) do
-                    if vehicleType == allowedType then
-                        allowed = true
-                        break
-                    end
-                end
-
-                if allowed then
+                if allowedMap[vehicleType] then
                     clean.vehicles[#clean.vehicles + 1] = {
                         type = vehicleType,
                         min = math.max(1, math.floor(tonumber(vehicle.min) or 1)),
@@ -177,14 +176,15 @@ function Utils.SanitizeMission(mission)
     return clean
 end
 
-function Utils.SanitizeMissions(missions)
+function Utils.SanitizeMissions(missions, resolveAllowedTypes)
     local result = {}
     if type(missions) ~= 'table' then
         return result
     end
 
     for _, mission in ipairs(missions) do
-        result[#result + 1] = Utils.SanitizeMission(mission)
+        local allowedTypes = resolveAllowedTypes and resolveAllowedTypes(mission) or nil
+        result[#result + 1] = Utils.SanitizeMission(mission, allowedTypes)
     end
 
     return result

@@ -5,8 +5,8 @@ const resourceName = typeof GetParentResourceName === 'function'
 const state = {
     missions: [],
     jobs: [],
+    vehicleTypesByJob: {},
     displayTitle: 'Krankentransport-Jobs',
-    vehicleTypeOptions: ['RTW', 'KTW'],
     defaultNpcModel: '',
     search: '',
     open: false,
@@ -43,6 +43,16 @@ function defaultMission() {
         vehicles: [],
         items: [],
     };
+}
+
+function getVehicleTypesForJob(jobName) {
+    return state.vehicleTypesByJob[jobName] || [];
+}
+
+function isVehicleTypeAllowed(jobName, vehicleType) {
+    if (!vehicleType) return false;
+    const normalized = String(vehicleType).toUpperCase();
+    return getVehicleTypesForJob(jobName).includes(normalized);
 }
 
 function filteredMissions() {
@@ -254,18 +264,20 @@ function createCoordBlock(title, prefix, mission, missionId) {
     return block;
 }
 
-function createListRow(missionId, kind, index, data, onRemove) {
+function createListRow(missionId, kind, index, data, onRemove, jobName = '') {
     const row = UI.el('div', `list-row${kind === 'item' ? ' items' : ''}`, {
         dataset: { [kind]: String(index) },
     });
 
     if (kind === 'vehicle') {
-        const typeItems = state.vehicleTypeOptions.map((v) => ({ value: v, label: v }));
+        const types = getVehicleTypesForJob(jobName);
+        const typeItems = types.map((v) => ({ value: v, label: v }));
+        const selectedType = isVehicleTypeAllowed(jobName, data.type) ? data.type : '';
         const typeDropdown = UI.dropdown({
             className: 'vehicle-type-dd',
             items: typeItems,
-            value: data.type || '',
-            placeholder: 'Typ',
+            value: selectedType,
+            placeholder: types.length ? 'Typ' : 'Keine EMD-Typen',
         });
         row._vehicleTypeDropdown = typeDropdown;
         row.appendChild(typeDropdown.el);
@@ -395,6 +407,15 @@ function createMissionCard(mission) {
         className: 'mission-job-dd',
         items: state.jobs.map((j) => ({ value: j.name, label: j.label || j.name })),
         value: mission.job || state.jobs[0]?.name || '',
+        onChange: (jobName) => {
+            syncFromDom();
+            const m = state.missions.find((x) => x.id === mission.id);
+            if (!m) return;
+
+            m.job = jobName;
+            m.vehicles = (m.vehicles || []).filter((vehicle) => isVehicleTypeAllowed(jobName, vehicle.type));
+            renderMissions();
+        },
     });
     top.appendChild(jobDropdown.el);
 
@@ -470,8 +491,9 @@ function createMissionCard(mission) {
 
     const vehicleSection = UI.section(
         'FAHRZEUG-VORAUSSETZUNGEN',
-        'Alle Zeilen müssen erfüllt sein (mindestens so viele besetzte Fahrzeuge des Typs), damit die Mission automatisch ausgelöst wird.',
+        'Fahrzeugtypen stammen aus der EMD-Tabelle und hängen vom gewählten Job ab. Alle Zeilen müssen erfüllt sein, damit die Mission automatisch ausgelöst wird.',
     );
+    const currentJob = mission.job || state.jobs[0]?.name || '';
     const vehicleList = UI.el('div', 'vehicle-list');
     (mission.vehicles || []).forEach((v, i) => {
         vehicleList.appendChild(createListRow(mission.id, 'vehicle', i, v, () => {
@@ -479,10 +501,11 @@ function createMissionCard(mission) {
             const m = state.missions.find((x) => x.id === mission.id);
             m.vehicles.splice(i, 1);
             renderMissions();
-        }));
+        }, currentJob));
     });
     vehicleSection.appendChild(vehicleList);
-    vehicleSection.appendChild(UI.button('btn-small btn-secondary btn-with-icon', {
+
+    const addVehicleBtn = UI.button('btn-small btn-secondary btn-with-icon', {
         icon: 'plus',
         text: ' Fahrzeug',
         onClick: () => {
@@ -491,7 +514,12 @@ function createMissionCard(mission) {
             m.vehicles.push({ type: '', min: '' });
             renderMissions();
         },
-    }));
+    });
+    if (!getVehicleTypesForJob(currentJob).length) {
+        addVehicleBtn.disabled = true;
+        addVehicleBtn.title = 'Für diesen Job sind keine EMD-Fahrzeugtypen hinterlegt';
+    }
+    vehicleSection.appendChild(addVehicleBtn);
     body.appendChild(vehicleSection);
 
     const itemSection = UI.section(
@@ -611,7 +639,7 @@ function syncFromDom() {
 function openConfigurator(data) {
     state.missions = data.missions || [];
     state.jobs = data.jobs || [];
-    state.vehicleTypeOptions = data.vehicleTypeOptions || ['RTW', 'KTW'];
+    state.vehicleTypesByJob = data.vehicleTypesByJob || {};
     state.displayTitle = data.displayTitle || 'Krankentransport-Jobs';
     state.placementKeyLabel = data.placementKeyLabel || 'E';
     state.defaultNpcModel = data.defaultNpcModel || '';

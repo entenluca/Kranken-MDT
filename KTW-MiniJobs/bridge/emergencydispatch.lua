@@ -12,16 +12,8 @@ function EmergencyDispatch.NormalizeVehicleType(vehicleType)
     return string.upper(tostring(vehicleType or ''))
 end
 
-function EmergencyDispatch.IsAllowedVehicleType(vehicleType)
-    local normalized = EmergencyDispatch.NormalizeVehicleType(vehicleType)
-
-    for _, allowed in ipairs(Config.AllowedVehicleTypes) do
-        if normalized == allowed then
-            return true
-        end
-    end
-
-    return false
+function EmergencyDispatch.IsAllowedVehicleTypeForJob(jobName, vehicleType)
+    return VehicleTypes.IsValidForJob(jobName, vehicleType)
 end
 
 function EmergencyDispatch.GetMannedVehicles()
@@ -47,7 +39,7 @@ function EmergencyDispatch.GetMannedVehicleCounts(jobName)
         if entry.job == jobName then
             local vehicleType = EmergencyDispatch.NormalizeVehicleType(entry.type)
 
-            if EmergencyDispatch.IsAllowedVehicleType(vehicleType) then
+            if EmergencyDispatch.IsAllowedVehicleTypeForJob(jobName, vehicleType) then
                 counts[vehicleType] = (counts[vehicleType] or 0) + 1
             end
         end
@@ -68,7 +60,7 @@ function EmergencyDispatch.GroupAvailableVehiclesByType(jobName)
         if entry.job == jobName and EmergencyDispatch.IsVehicleAvailable(entry) then
             local vehicleType = EmergencyDispatch.NormalizeVehicleType(entry.type)
 
-            if EmergencyDispatch.IsAllowedVehicleType(vehicleType) then
+            if EmergencyDispatch.IsAllowedVehicleTypeForJob(jobName, vehicleType) then
                 grouped[vehicleType] = grouped[vehicleType] or {}
                 grouped[vehicleType][#grouped[vehicleType] + 1] = entry
             end

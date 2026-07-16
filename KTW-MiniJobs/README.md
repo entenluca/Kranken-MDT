@@ -58,7 +58,15 @@ Pro Einsatz kann im Konfigurator aktiviert werden, ob eine Belohnung ausgezahlt 
 
 ## Fahrzeugtypen
 
-Nur **RTW** und **KTW** sind erlaubt. Die Besetzung wird über den EmergencyDispatch-Export `mannedvehicles` geprüft – Spieler müssen ihr Fahrzeug in EmergencyDispatch besetzt haben.
+Fahrzeugtypen werden aus der **EMD-Tabelle `emd_vehicletypes`** geladen (Spalten `job`, `vehtype`). Im Konfigurator erscheinen nur die Typen des **gewählten Jobs**. Hat ein Job keine Einträge in EMD, können keine Fahrzeug-Voraussetzungen gesetzt werden.
+
+Tabellenname in `config.lua` anpassbar:
+
+```lua
+Config.EmdVehicleTypesTable = 'emd_vehicletypes'
+```
+
+Die Besetzung wird über den EmergencyDispatch-Export `mannedvehicles` geprüft – Spieler müssen ihr Fahrzeug in EmergencyDispatch besetzt haben.
 
 ## Jobs
 

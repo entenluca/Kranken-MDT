@@ -13,10 +13,13 @@ local function isAdmin(source)
 end
 
 local function buildConfiguratorPayload()
+    Jobs.WaitUntilReady()
+    VehicleTypes.WaitUntilReady()
+
     return {
         missions = Storage.GetMissions(),
         jobs = Jobs.GetJobs(),
-        vehicleTypeOptions = Config.AllowedVehicleTypes,
+        vehicleTypesByJob = VehicleTypes.GetGrouped(),
         defaultNpcModel = Config.DefaultNpcModel,
         displayTitle = Config.DisplayTitle,
         placementKeyLabel = Config.PlacementKeyLabel,
