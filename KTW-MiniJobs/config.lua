@@ -27,6 +27,12 @@ Config.AcceptRadius = 25.0
 -- Abstand zum Zielpunkt für Abschluss (Meter)
 Config.CompleteRadius = 15.0
 
+-- Einsatz abbrechen: Taste (177 = BACKSPACE, 0 = nur per Befehl /ktcancel)
+-- BACKSPACE kollidiert oft mit EMD-Funkgerät und anderen Menüs – daher Bestätigung
+Config.MissionCancelKey = 0
+Config.MissionCancelCommand = 'ktcancel'
+Config.MissionCancelConfirm = true
+
 -- NPC-Modell-Fallback für KT (nur wenn im Einsatz leer)
 Config.DefaultNpcModel = 'a_m_y_business_02'
 

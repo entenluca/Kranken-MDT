@@ -62,7 +62,7 @@ Der Konfigurator nutzt **ox_lib Context-Menüs** und **Input-Dialoge** – keine
 4. Der Dispatch erscheint in **EmergencyDispatch** am **Startpunkt** mit Rettungsdienst-Stichwort, Ziel-PLZ und berechneter Strecke/Fahrzeit
 5. Die passenden Fahrzeuge werden **direkt zugewiesen** (kein offener Einsatz für alle)
 6. Besatzung fährt über **EMD-Navigation** (Funkgerät: Einsatzort → Zielort) zum Start, bestätigt dort mit `E`
-7. Transport zum Ziel und Abschluss mit `E` (Abbruch mit `BACKSPACE`)
+7. Transport zum Ziel und Abschluss mit `E` (Abbruch mit `/ktcancel`)
 
 ## Belohnung
 

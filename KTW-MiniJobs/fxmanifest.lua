@@ -4,7 +4,7 @@ game 'gta5'
 name 'KTW-MiniJobs'
 description 'Automatische MTD- und Krankentransporte mit Einsatz-Konfigurator'
 author ''
-version '2.2.0'
+version '2.2.1'
 
 lua54 'yes'
 

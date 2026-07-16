@@ -1,5 +1,49 @@
 local currentMission = nil
 local missionNpc = nil
+local cancelDialogOpen = false
+
+local function canCancelMission()
+    if not currentMission then
+        return false
+    end
+
+    if IsNuiFocused() or IsPauseMenuActive() then
+        return false
+    end
+
+    return true
+end
+
+local function requestMissionCancel()
+    if not canCancelMission() or cancelDialogOpen then
+        return
+    end
+
+    local activeId = currentMission.activeId
+
+    if Config.MissionCancelConfirm then
+        cancelDialogOpen = true
+
+        CreateThread(function()
+            local confirmed = lib.alertDialog({
+                header = 'Einsatz abbrechen',
+                content = 'Möchtest du den aktuellen Einsatz wirklich abbrechen?',
+                centered = true,
+                cancel = true,
+            })
+
+            cancelDialogOpen = false
+
+            if confirmed == 'confirm' and currentMission and currentMission.activeId == activeId then
+                TriggerServerEvent('nm_ktjobs:server:cancelMission', activeId)
+            end
+        end)
+
+        return
+    end
+
+    TriggerServerEvent('nm_ktjobs:server:cancelMission', activeId)
+end
 
 RegisterNetEvent('nm_ktjobs:client:notify', function(message, nType)
     Framework.Notify(message, nType)
@@ -126,14 +170,25 @@ CreateThread(function()
                 end
             end
 
-            if IsControlJustReleased(0, 177) then
-                TriggerServerEvent('nm_ktjobs:server:cancelMission', currentMission.activeId)
+            local cancelKey = tonumber(Config.MissionCancelKey) or 0
+            if cancelKey > 0 and IsControlJustReleased(0, cancelKey) then
+                requestMissionCancel()
             end
         end
 
         Wait(sleep)
     end
 end)
+
+if type(Config.MissionCancelCommand) == 'string' and Config.MissionCancelCommand ~= '' then
+    RegisterCommand(Config.MissionCancelCommand, function()
+        requestMissionCancel()
+    end, false)
+
+    CreateThread(function()
+        TriggerEvent('chat:addSuggestion', '/' .. Config.MissionCancelCommand, 'Aktuellen KTW/MTD-Einsatz abbrechen')
+    end)
+end
 
 AddEventHandler('onResourceStop', function(resourceName)
     if resourceName ~= GetCurrentResourceName() then
