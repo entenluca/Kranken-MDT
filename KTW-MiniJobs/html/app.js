@@ -1,6 +1,6 @@
 const resourceName = typeof GetParentResourceName === 'function'
     ? GetParentResourceName()
-    : 'nm_ktjobs';
+    : 'KTW-MiniJobs';
 
 const state = {
     missions: [],

@@ -1,4 +1,4 @@
-# Krankentransport-Jobs
+# KTW-MiniJobs
 
 FiveM-Ressource für automatische **MTD-** (Medizinischer Transport) und **KT-** (Krankentransport) Einsätze in ruhigen Zeiten.
 
