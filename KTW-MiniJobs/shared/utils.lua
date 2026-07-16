@@ -13,7 +13,7 @@ function Utils.DeepCopy(value)
 end
 
 function Utils.NewMissionId()
-    return ('m_%s_%s'):format(os.time(), math.random(1000, 9999))
+    return ('m_%s_%s'):format(GetGameTimer(), math.random(1000, 9999))
 end
 
 function Utils.DefaultMission()
