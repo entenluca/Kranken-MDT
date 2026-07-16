@@ -11,13 +11,13 @@ FiveM-Ressource für automatische **MTD-** (Medizinischer Transport) und **KT-**
 
 ## Installation
 
-1. Ordner `nm_ktjobs` in deinen `resources`-Ordner legen
+1. Ordner `KTW-MiniJobs` in deinen `resources`-Ordner legen
 2. In `server.cfg` eintragen (nach Framework, MySQL und EmergencyDispatch):
 
 ```
 ensure oxmysql
 ensure emergencydispatch
-ensure nm_ktjobs
+ensure KTW-MiniJobs
 ```
 
 Die SQL-Tabelle wird beim Start **automatisch** angelegt (`sql/ktjobs.sql`). Ein manueller Import ist nicht nötig.
@@ -59,9 +59,26 @@ Pro Einsatz kann im Konfigurator aktiviert werden, ob eine Belohnung ausgezahlt 
 
 Nur **RTW** und **KTW** sind erlaubt. Die Besetzung wird über den EmergencyDispatch-Export `mannedvehicles` geprüft – Spieler müssen ihr Fahrzeug in EmergencyDispatch besetzt haben.
 
+## Jobs
+
+Verfügbare Jobs werden aus der Tabelle **`ktjobs_jobs`** geladen (nicht mehr aus der `config.lua`).
+
+Beispiel-Einträge werden beim ersten Start automatisch angelegt (`ambulance`, `fire`). Weitere Jobs per SQL hinzufügen:
+
+```sql
+INSERT INTO ktjobs_jobs (name, label, sort_order, enabled)
+VALUES ('ambulance', 'Rettungsdienst', 1, 1);
+```
+
+| Spalte | Bedeutung |
+|--------|-----------|
+| `name` | Framework-Jobname (z. B. `ambulance`) |
+| `label` | Anzeige im Konfigurator |
+| `sort_order` | Sortierung |
+| `enabled` | `1` = im Konfigurator sichtbar |
+
 ## Konfiguration
 
-- **Jobs** (`Config.Jobs`): Auswahl im Konfigurator
 - **Fahrzeugtypen** (`Config.AllowedVehicleTypes`): `RTW`, `KTW`
 - **Postleitzahl** (`Config.PostalResource`): `auto`, `nearest-postal`, `postals` oder `none`
 

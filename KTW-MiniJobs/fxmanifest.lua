@@ -34,6 +34,7 @@ server_scripts {
     'bridge/emergencydispatch.lua',
     'bridge/dispatch.lua',
     'server/database.lua',
+    'server/jobs.lua',
     'server/storage.lua',
     'server/missions.lua',
     'server/main.lua',

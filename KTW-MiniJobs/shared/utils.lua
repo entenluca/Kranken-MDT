@@ -91,7 +91,7 @@ function Utils.SanitizeMission(mission)
     clean.id = mission.id or Utils.NewMissionId()
     clean.enabled = mission.enabled ~= false
     clean.type = mission.type == 'KT' and 'KT' or 'MTD'
-    clean.job = type(mission.job) == 'string' and mission.job or 'ambulance'
+    clean.job = type(mission.job) == 'string' and mission.job or ''
     clean.text = type(mission.text) == 'string' and mission.text or ''
     clean.start = mission.start or clean.start
     clean.target = mission.target or clean.target

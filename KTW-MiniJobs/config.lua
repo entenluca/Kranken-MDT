@@ -63,6 +63,9 @@ Config.Database = 'auto'
 -- Tabellenname für Einsätze
 Config.DatabaseTable = 'ktjobs_missions'
 
+-- Tabellenname für Jobs (Konfigurator-Auswahl)
+Config.DatabaseJobsTable = 'ktjobs_jobs'
+
 -- Berechtigungen für den Konfigurator (eine davon reicht)
 Config.AdminAces = {
     'ktjobs.admin',

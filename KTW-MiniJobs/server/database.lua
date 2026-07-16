@@ -119,7 +119,11 @@ function Database.Init()
 
     Database.RunSqlFile('sql/ktjobs.sql')
     Database.ready = true
-    print(('[ktjobs] Datenbank bereit (%s, Tabelle: %s)'):format(Database.driver, Database.tableName))
+    print(('[ktjobs] Datenbank bereit (%s, Tabellen: %s, %s)'):format(
+        Database.driver,
+        Config.DatabaseTable,
+        Config.DatabaseJobsTable
+    ))
     return true
 end
 

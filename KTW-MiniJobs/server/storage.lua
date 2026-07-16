@@ -152,11 +152,13 @@ end
 
 function Storage.SetMissions(missions)
     waitForDatabase()
+    Jobs.WaitUntilReady()
 
     missions = Utils.SanitizeMissions(missions)
     local ids = {}
 
     for index, mission in ipairs(missions) do
+        mission.job = Jobs.ResolveJob(mission.job)
         ids[#ids + 1] = mission.id
         Storage.UpsertMission(mission, index)
     end

@@ -15,7 +15,7 @@ end
 local function buildConfiguratorPayload()
     return {
         missions = Storage.GetMissions(),
-        jobs = Config.Jobs,
+        jobs = Jobs.GetJobs(),
         vehicleTypeOptions = Config.AllowedVehicleTypes,
         defaultNpcModel = Config.DefaultNpcModel,
         displayTitle = Config.DisplayTitle,
