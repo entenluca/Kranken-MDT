@@ -43,6 +43,41 @@ function Utils.Vector3ToTable(vec)
     return { x = vec.x + 0.0, y = vec.y + 0.0, z = vec.z + 0.0 }
 end
 
+function Utils.GetNpcModels()
+    return type(Config.NpcModels) == 'table' and Config.NpcModels or {}
+end
+
+function Utils.IsValidNpcModel(model)
+    if type(model) ~= 'string' or model == '' then
+        return false
+    end
+
+    for _, entry in ipairs(Utils.GetNpcModels()) do
+        if entry.model == model then
+            return true
+        end
+    end
+
+    return false
+end
+
+function Utils.SanitizeNpcModel(model)
+    if Utils.IsValidNpcModel(model) then
+        return model
+    end
+
+    if Utils.IsValidNpcModel(Config.DefaultNpcModel) then
+        return Config.DefaultNpcModel
+    end
+
+    local models = Utils.GetNpcModels()
+    if models[1] and models[1].model then
+        return models[1].model
+    end
+
+    return type(Config.DefaultNpcModel) == 'string' and Config.DefaultNpcModel or ''
+end
+
 function Utils.Distance(a, b)
     return #(Utils.CoordsToVector3(a) - Utils.CoordsToVector3(b))
 end
@@ -136,7 +171,7 @@ function Utils.SanitizeMission(mission, allowedTypes)
     clean.start = mission.start or clean.start
     clean.target = mission.target or clean.target
     clean.reward = Utils.SanitizeReward(mission.reward or clean.reward)
-    clean.npcModel = type(mission.npcModel) == 'string' and mission.npcModel or ''
+    clean.npcModel = Utils.SanitizeNpcModel(mission.npcModel)
 
     clean.vehicles = {}
     if type(mission.vehicles) == 'table' then

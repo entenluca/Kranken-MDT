@@ -518,9 +518,9 @@ body.scrollbar-dragging .custom-scrollbar-thumb {
     width: 120px;
 }
 
-.npc-row input {
+.npc-row .npc-model-dd {
     flex: 1;
-    width: auto;
+    width: 100%;
 }
 
 .list-row {

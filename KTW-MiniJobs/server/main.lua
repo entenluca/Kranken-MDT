@@ -20,6 +20,7 @@ local function buildConfiguratorPayload()
         missions = Storage.GetMissions(),
         jobs = Jobs.GetJobs(),
         vehicleTypesByJob = VehicleTypes.GetGrouped(),
+        npcModels = Utils.GetNpcModels(),
         defaultNpcModel = Config.DefaultNpcModel,
         displayTitle = Config.DisplayTitle,
         placementKeyLabel = Config.PlacementKeyLabel,

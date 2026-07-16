@@ -27,6 +27,30 @@ Config.CompleteRadius = 15.0
 -- NPC-Modell-Fallback für KT (nur wenn im Einsatz leer)
 Config.DefaultNpcModel = 'a_m_y_business_02'
 
+-- Auswählbare NPC-Modelle im Konfigurator (Spawnname + Anzeigename)
+Config.NpcModels = {
+    { model = 'a_m_y_business_02', name = 'Marcus Thorn' },
+    { model = 'a_f_y_business_01', name = 'Elena Frost' },
+    { model = 'a_m_y_business_03', name = 'Jonas Greystone' },
+    { model = 'a_f_y_business_02', name = 'Mira Ashford' },
+    { model = 'a_m_m_business_01', name = 'Henrik Vale' },
+    { model = 'a_f_m_business_02', name = 'Clara Windmere' },
+    { model = 'a_m_y_genstreet_01', name = 'Kael River' },
+    { model = 'a_f_y_genstreet_01', name = 'Lyra Stone' },
+    { model = 'a_m_o_genstreet_01', name = 'Otto Flint' },
+    { model = 'a_f_o_genstreet_01', name = 'Helena Dusk' },
+    { model = 'a_m_y_vinewood_01', name = 'Finn Oaken' },
+    { model = 'a_f_y_vinewood_01', name = 'Nora Silber' },
+    { model = 'a_m_y_stbla_02', name = 'Tobias Ember' },
+    { model = 'a_f_y_stbla_01', name = 'Sira Moonfall' },
+    { model = 'u_m_y_proldriver_01', name = 'Rex Hollow' },
+    { model = 'a_m_y_epsilon_01', name = 'Cedric Dawn' },
+    { model = 'a_f_y_epsilon_01', name = 'Ava Nightshade' },
+    { model = 'ig_old_man1', name = 'Eldric Grimwald' },
+    { model = 'ig_old_man2', name = 'Bram Ironroot' },
+    { model = 'ig_mrsphillips', name = 'Isolde Thornhill' },
+}
+
 -- EMD-Fahrzeugtypen-Tabelle (EmergencyDispatch Administration)
 Config.EmdVehicleTypesTable = 'emd_vehicletypes'
 

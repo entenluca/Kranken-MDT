@@ -6,6 +6,8 @@ const state = {
     missions: [],
     jobs: [],
     vehicleTypesByJob: {},
+    npcModels: [],
+    defaultNpcModel: '',
     displayTitle: 'Krankentransport-Jobs',
     defaultNpcModel: '',
     search: '',
@@ -43,6 +45,21 @@ function defaultMission() {
         vehicles: [],
         items: [],
     };
+}
+
+function getNpcModelItems() {
+    return state.npcModels.map((entry) => ({
+        value: entry.model,
+        label: `${entry.name} · ${entry.model}`,
+    }));
+}
+
+function resolveNpcModel(model) {
+    if (state.npcModels.some((entry) => entry.model === model)) {
+        return model;
+    }
+
+    return state.npcModels[0]?.model || state.defaultNpcModel || '';
 }
 
 function getVehicleTypesForJob(jobName) {
@@ -477,15 +494,22 @@ function createMissionCard(mission) {
     rewardSection.appendChild(rewardRow);
     body.appendChild(rewardSection);
 
-    card._controls = { toggle, typeDropdown, jobDropdown, rewardToggle };
+    card._controls = { toggle, typeDropdown, jobDropdown, rewardToggle, npcDropdown };
 
-    const npcSection = UI.section('NPC (nur bei KT)');
+    const npcSection = UI.section(
+        'NPC (nur bei KT)',
+        'Wähle ein vordefiniertes NPC-Modell. Der Anzeigename ist frei wählbar, der Spawnname wird für den Einsatz verwendet.',
+    );
     npcSection.classList.add('kt-only');
     const npcRow = UI.el('div', 'npc-row');
-    const npcInput = UI.input('npc-model', { type: 'text', placeholder: 'NPC-Modell' });
-    npcInput.style.flex = '1';
-    if (mission.npcModel) npcInput.value = mission.npcModel;
-    npcRow.appendChild(npcInput);
+    const npcItems = getNpcModelItems();
+    const npcDropdown = UI.dropdown({
+        className: 'npc-model-dd',
+        items: npcItems,
+        value: resolveNpcModel(mission.npcModel),
+        placeholder: npcItems.length ? 'NPC auswählen' : 'Keine NPC-Modelle',
+    });
+    npcRow.appendChild(npcDropdown.el);
     npcSection.appendChild(npcRow);
     body.appendChild(npcSection);
 
@@ -604,8 +628,7 @@ function getMissionFromCard(card) {
         max: maxRaw === '' ? '' : parseInt(maxRaw, 10) || 0,
     };
 
-    const npcInput = card.querySelector('.npc-model');
-    mission.npcModel = npcInput?.value ?? '';
+    mission.npcModel = controls?.npcDropdown?.getValue() ?? '';
 
     mission.vehicles = Array.from(card.querySelectorAll('.list-row[data-vehicle]')).map((row) => {
         const type = row._vehicleTypeDropdown?.getValue() ?? '';
@@ -640,6 +663,8 @@ function openConfigurator(data) {
     state.missions = data.missions || [];
     state.jobs = data.jobs || [];
     state.vehicleTypesByJob = data.vehicleTypesByJob || {};
+    state.npcModels = data.npcModels || [];
+    state.defaultNpcModel = data.defaultNpcModel || '';
     state.displayTitle = data.displayTitle || 'Krankentransport-Jobs';
     state.placementKeyLabel = data.placementKeyLabel || 'E';
     state.defaultNpcModel = data.defaultNpcModel || '';
