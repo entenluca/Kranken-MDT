@@ -3,6 +3,8 @@ local State = {
     jobs = {},
     vehicleTypesByJob = {},
     npcModels = {},
+    stichwortList = {},
+    defaultStichwortByType = {},
     defaultNpcModel = '',
     displayTitle = 'Krankentransport-Jobs',
 }
@@ -26,7 +28,7 @@ local function getMissionById(missionId)
 end
 
 local function missionLabel(mission)
-    local text = mission.text ~= '' and mission.text or 'Neuer Einsatz'
+    local text = mission.text ~= '' and mission.text or stichwortLabel(mission.stichwort)
     local status = mission.enabled and 'Aktiv' or 'Inaktiv'
     return ('%s · %s · %s'):format(mission.type, mission.job, text) .. (' (%s)'):format(status)
 end
@@ -62,6 +64,31 @@ local function npcOptions()
         }
     end
     return options
+end
+
+local function stichwortLabel(stichwortId)
+    for _, entry in ipairs(State.stichwortList) do
+        if entry.id == stichwortId then
+            return entry.label or entry.id
+        end
+    end
+    return stichwortId ~= '' and stichwortId or 'Standard'
+end
+
+local function stichwortOptions()
+    local options = {}
+    for _, entry in ipairs(State.stichwortList) do
+        options[#options + 1] = {
+            value = entry.id,
+            label = entry.label or entry.id,
+        }
+    end
+    return options
+end
+
+local function defaultStichwortForType(missionType)
+    return State.defaultStichwortByType[missionType]
+        or (missionType == 'KT' and 'krankentransport' or 'patientenverlegung')
 end
 
 local function formatCoords(coords)
@@ -242,7 +269,17 @@ local function editMissionBasics(missionId)
         end
     end
 
-    local input = lib.inputDialog('Einsatz bearbeiten', {
+    local stichworte = stichwortOptions()
+    local currentStichwortIndex = 1
+    local missionStichwort = Utils.SanitizeStichwort(mission.stichwort, mission.type)
+    for index, option in ipairs(stichworte) do
+        if option.value == missionStichwort then
+            currentStichwortIndex = index
+            break
+        end
+    end
+
+    local dialogFields = {
         {
             type = 'select',
             label = 'Typ',
@@ -258,27 +295,61 @@ local function editMissionBasics(missionId)
             options = jobs,
             default = currentJobIndex,
         },
-        {
-            type = 'input',
-            label = 'Dispatch-Text',
-            default = mission.text or '',
-        },
-        {
-            type = 'checkbox',
-            label = 'Einsatz aktiv',
-            checked = mission.enabled ~= false,
-        },
-    })
+    }
+
+    if #stichworte > 0 then
+        dialogFields[#dialogFields + 1] = {
+            type = 'select',
+            label = 'EMD-Stichwort',
+            description = 'Meldungstext wie im Rettungsdienst (Patientenverlegung, NEF, Klinikfahrt …)',
+            options = stichworte,
+            default = currentStichwortIndex,
+        }
+    end
+
+    dialogFields[#dialogFields + 1] = {
+        type = 'input',
+        label = 'Zusatztext (optional)',
+        description = 'Wird an die EMD-Meldung angehängt',
+        default = mission.text or '',
+    }
+    dialogFields[#dialogFields + 1] = {
+        type = 'checkbox',
+        label = 'Einsatz aktiv',
+        checked = mission.enabled ~= false,
+    }
+
+    local input = lib.inputDialog('Einsatz bearbeiten', dialogFields)
 
     if not input then
         lib.showContext('ktjobs_mission_' .. missionId)
         return
     end
 
+    local previousType = mission.type
     mission.type = input[1]
     mission.job = input[2]
-    mission.text = input[3] or ''
-    mission.enabled = input[4] == true
+
+    local stichwortIndex = #stichworte > 0 and 3 or nil
+    local textIndex = #stichworte > 0 and 4 or 3
+    local enabledIndex = #stichworte > 0 and 5 or 4
+
+    if stichwortIndex then
+        mission.stichwort = input[stichwortIndex]
+    elseif mission.type ~= previousType then
+        mission.stichwort = defaultStichwortForType(mission.type)
+    end
+
+    if mission.type ~= previousType and stichwortIndex then
+        local oldDefault = defaultStichwortForType(previousType)
+        if not mission.stichwort or mission.stichwort == '' or mission.stichwort == oldDefault then
+            mission.stichwort = defaultStichwortForType(mission.type)
+        end
+    end
+
+    mission.stichwort = Utils.SanitizeStichwort(mission.stichwort, mission.type)
+    mission.text = input[textIndex] or ''
+    mission.enabled = input[enabledIndex] == true
 
     local allowedTypes = State.vehicleTypesByJob[mission.job] or {}
     local allowedMap = {}
@@ -768,6 +839,7 @@ local function openMainMenu()
             if State.jobs[1] then
                 mission.job = State.jobs[1].name
             end
+            mission.stichwort = defaultStichwortForType(mission.type)
             if State.defaultNpcModel ~= '' then
                 mission.npcModel = State.defaultNpcModel
             end
@@ -808,6 +880,8 @@ function OpenConfigurator()
     State.jobs = data.jobs or {}
     State.vehicleTypesByJob = data.vehicleTypesByJob or {}
     State.npcModels = data.npcModels or {}
+    State.stichwortList = data.stichwortList or {}
+    State.defaultStichwortByType = data.defaultStichwortByType or {}
     State.defaultNpcModel = data.defaultNpcModel or ''
     State.displayTitle = data.displayTitle or 'Krankentransport-Jobs'
 

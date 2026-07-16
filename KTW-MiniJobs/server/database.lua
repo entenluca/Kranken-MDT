@@ -101,6 +101,24 @@ function Database.RunSqlFile(relativePath)
     return true
 end
 
+function Database.Migrate()
+    local tableName = Database.tableName
+    local columns = Database.Query(('SHOW COLUMNS FROM `%s`'):format(tableName))
+    local hasStichwort = false
+
+    for _, column in ipairs(columns) do
+        if column.Field == 'dispatch_stichwort' then
+            hasStichwort = true
+            break
+        end
+    end
+
+    if not hasStichwort then
+        Database.Execute(('ALTER TABLE `%s` ADD COLUMN `dispatch_stichwort` VARCHAR(64) NOT NULL DEFAULT \'\' AFTER `dispatch_text`'):format(tableName), {})
+        print('[ktjobs] Datenbank-Migration: Spalte dispatch_stichwort hinzugefügt.')
+    end
+end
+
 function Database.Init()
     if not detectDriver() then
         print('[ktjobs] FEHLER: Weder oxmysql noch mysql-async gefunden. Einsätze können nicht gespeichert werden.')
@@ -118,6 +136,7 @@ function Database.Init()
     end
 
     Database.RunSqlFile('sql/ktjobs.sql')
+    Database.Migrate()
     Database.ready = true
     print(('[ktjobs] Datenbank bereit (%s, Einsätze: %s, Jobs: %s)'):format(
         Database.driver,

@@ -39,13 +39,7 @@ local function cleanupMission()
     currentMission = nil
 end
 
-local function notifyEmdNavigation()
-    if Config.UseEmdNavigation then
-        Framework.Notify('Navigation über das EMD-Funkgerät: Einsatzort → Zielort.', 'inform')
-    end
-end
-
-RegisterNetEvent('nm_ktjobs:client:missionAssigned', function(activeId, mission, message, route)
+RegisterNetEvent('nm_ktjobs:client:missionAssigned', function(activeId, mission, route)
     if Framework.GetPlayerJob() ~= mission.job then
         return
     end
@@ -58,13 +52,6 @@ RegisterNetEvent('nm_ktjobs:client:missionAssigned', function(activeId, mission,
         route = route,
         phase = 'to_start',
     }
-
-    if EmergencyDispatchClient.IsEmd() then
-        Framework.Notify(message, 'inform')
-        notifyEmdNavigation()
-    else
-        Framework.Notify('Einsatz alarmiert – besetze ein Fahrzeug in EmergencyDispatch.', 'inform')
-    end
 end)
 
 RegisterNetEvent('nm_ktjobs:client:missionTransport', function(activeId, mission)
@@ -77,9 +64,6 @@ RegisterNetEvent('nm_ktjobs:client:missionTransport', function(activeId, mission
     if mission.type == 'KT' then
         spawnKtNpc(mission)
     end
-
-    Framework.Notify('Transport gestartet. Fahre zum Ziel.', 'success')
-    notifyEmdNavigation()
 end)
 
 RegisterNetEvent('nm_ktjobs:client:missionEnded', function(activeId, state, reward, job)
@@ -89,14 +73,8 @@ RegisterNetEvent('nm_ktjobs:client:missionEnded', function(activeId, state, rewa
 
     cleanupMission()
 
-    if state == 'completed' then
-        if reward and reward > 0 then
-            Framework.Notify(('Transport abgeschlossen. $%s auf Geschäftskonto (%s) gutgeschrieben.'):format(reward, job or ''), 'success')
-        else
-            Framework.Notify('Transport abgeschlossen.', 'success')
-        end
-    elseif state == 'cancelled' then
-        Framework.Notify('Einsatz abgebrochen.', 'error')
+    if state == 'completed' and reward and reward > 0 then
+        Framework.Notify(('Transport abgeschlossen. $%s auf Geschäftskonto (%s) gutgeschrieben.'):format(reward, job or ''), 'success')
     end
 end)
 

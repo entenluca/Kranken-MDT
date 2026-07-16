@@ -22,6 +22,8 @@ local function buildConfiguratorPayload()
         vehicleTypesByJob = VehicleTypes.GetGrouped(),
         npcModels = Utils.GetNpcModels(),
         defaultNpcModel = Config.DefaultNpcModel,
+        stichwortList = Config.DispatchStichwortList or {},
+        defaultStichwortByType = Config.DefaultStichwortByType or {},
         displayTitle = Config.DisplayTitle,
         placementKeyLabel = Config.PlacementKeyLabel,
     }

@@ -22,6 +22,7 @@ function Utils.DefaultMission()
         enabled = true,
         type = 'MTD',
         job = 'ambulance',
+        stichwort = (Config.DefaultStichwortByType and Config.DefaultStichwortByType.MTD) or 'patientenverlegung',
         text = '',
         start = { x = 0.0, y = 0.0, z = 0.0 },
         target = { x = 0.0, y = 0.0, z = 0.0 },
@@ -59,6 +60,19 @@ function Utils.IsValidNpcModel(model)
     end
 
     return false
+end
+
+function Utils.SanitizeStichwort(stichwort, missionType)
+    if type(stichwort) == 'string' and stichwort ~= '' and Config.DispatchStichworte and Config.DispatchStichworte[stichwort] then
+        return stichwort
+    end
+
+    local defaults = Config.DefaultStichwortByType or {}
+    if missionType == 'KT' and defaults.KT then
+        return defaults.KT
+    end
+
+    return defaults.MTD or 'patientenverlegung'
 end
 
 function Utils.SanitizeNpcModel(model)
@@ -167,6 +181,7 @@ function Utils.SanitizeMission(mission, allowedTypes)
     clean.enabled = mission.enabled ~= false
     clean.type = mission.type == 'KT' and 'KT' or 'MTD'
     clean.job = type(mission.job) == 'string' and mission.job or ''
+    clean.stichwort = Utils.SanitizeStichwort(mission.stichwort, clean.type)
     clean.text = type(mission.text) == 'string' and mission.text or ''
     clean.start = mission.start or clean.start
     clean.target = mission.target or clean.target

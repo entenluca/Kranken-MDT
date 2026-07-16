@@ -63,8 +63,39 @@ Config.EmergencyDispatchResource = 'emergencydispatch'
 -- EmergencyDispatch Event für neue Einsätze
 Config.DispatchEvent = 'emergencydispatch:emergencycall:new'
 
--- Postleitzahl und Strecke in Dispatch-Text (Platzhalter: Text, Ziel-PLZ, Strecke, Fahrzeit)
+-- Rettungsdienst-Stichworte für EMD-Einsatzmeldungen (Platzhalter: Ziel-PLZ, Strecke, Fahrzeit Min)
+Config.DispatchStichworte = {
+    patientenverlegung = 'Patientenverlegung – Abholung und Transport ins Ziel-KH (PLZ %s) | Strecke %s / ~%s Min',
+    krankentransport = 'Krankentransport – planbarer Patiententransport (Ziel PLZ %s) | Strecke %s / ~%s Min',
+    klinikfahrt = 'Klinikfahrt – Verlegung in weiterführendes Krankenhaus (Ziel PLZ %s) | Strecke %s / ~%s Min',
+    nef_verlegung = 'NEF – Ärztliche Verlegung, Arzt zum Ziel-KH (PLZ %s) | Strecke %s / ~%s Min',
+    ruecktransport = 'Rücktransport – Patient von KH in Versorgungsgebiet (Ziel PLZ %s) | Strecke %s / ~%s Min',
+    mtd = 'Medizinischer Transport – Material/Equipment (Ziel PLZ %s) | Strecke %s / ~%s Min',
+    dialyse = 'Dialysefahrt – planbarer Fahrdienst (Ziel PLZ %s) | Strecke %s / ~%s Min',
+}
+
+-- Auswahl im Konfigurator (id = Schlüssel in DispatchStichworte)
+Config.DispatchStichwortList = {
+    { id = 'patientenverlegung', label = 'Patientenverlegung' },
+    { id = 'krankentransport', label = 'Krankentransport' },
+    { id = 'klinikfahrt', label = 'Klinikfahrt / anderes KH' },
+    { id = 'nef_verlegung', label = 'NEF / Ärztliche Verlegung' },
+    { id = 'ruecktransport', label = 'Rücktransport' },
+    { id = 'mtd', label = 'Medizinischer Transport (MTD)' },
+    { id = 'dialyse', label = 'Dialysefahrt' },
+}
+
+-- Standard-Stichwort wenn im Einsatz nichts gewählt
+Config.DefaultStichwortByType = {
+    KT = 'krankentransport',
+    MTD = 'patientenverlegung',
+}
+
+-- Fallback-Meldung
 Config.PostalMessageTemplate = '%s (Ziel PLZ %s) | Strecke %s / ~%s Min'
+
+-- Keine Framework-Notify bei EMD-Alarmierung (nur EmergencyDispatch)
+Config.SuppressDispatchNotify = true
 
 -- EMD: Blip auf der Karte bei Dispatch anzeigen
 Config.DispatchShowBlip = true

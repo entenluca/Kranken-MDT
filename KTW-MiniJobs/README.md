@@ -49,12 +49,13 @@ Der Konfigurator nutzt **ox_lib Context-Menüs** und **Input-Dialoge** – keine
 
 ### Ablauf (über EmergencyDispatch)
 
-1. Admin konfiguriert Einsätze im Konfigurator (Typ, Job, Start/Ziel, Fahrzeug-Voraussetzungen, optionale Belohnung)
+1. Admin konfiguriert Einsätze im Konfigurator (Typ, Job, **EMD-Stichwort**, Start/Ziel, Fahrzeug-Voraussetzungen, optionale Belohnung)
 2. Sind genügend **freie** besetzte Fahrzeuge (RTW/KTW, kein aktiver EMD-Einsatz) im Dienst, wird der Einsatz automatisch ausgelöst
-3. Der Dispatch erscheint in **EmergencyDispatch** am **Startpunkt** inkl. Ziel-PLZ und berechneter Strecke/Fahrzeit
-4. Die passenden Fahrzeuge werden **direkt zugewiesen** (kein offener Einsatz für alle)
-5. Besatzung fährt über **EMD-Navigation** (Funkgerät: Einsatzort → Zielort) zum Start, bestätigt dort mit `E`
-6. Transport zum Ziel und Abschluss mit `E` (Abbruch mit `BACKSPACE`)
+3. Die Alarmierung erfolgt **nur über EmergencyDispatch** – keine Framework-Notify bei Zuweisung (`Config.SuppressDispatchNotify`)
+4. Der Dispatch erscheint in **EmergencyDispatch** am **Startpunkt** mit Rettungsdienst-Stichwort, Ziel-PLZ und berechneter Strecke/Fahrzeit
+5. Die passenden Fahrzeuge werden **direkt zugewiesen** (kein offener Einsatz für alle)
+6. Besatzung fährt über **EMD-Navigation** (Funkgerät: Einsatzort → Zielort) zum Start, bestätigt dort mit `E`
+7. Transport zum Ziel und Abschluss mit `E` (Abbruch mit `BACKSPACE`)
 
 ## Belohnung
 
@@ -88,6 +89,8 @@ Config.JobsTable = 'jobs'
 - **Postleitzahl** (`Config.PostalResource`): `auto`, `nearest-postal`, `postals` oder `none`
 - **EMD-Navigation** (`Config.UseEmdNavigation`): keine eigenen Blips/Wegpunkte, Navigation über EMD-Funkgerät
 - **Routenberechnung** (`Config.RouteSpeedKmh`, `Config.RouteRoadFactor`): Fahrzeit-Schätzung im Dispatch-Text
+- **EMD-Stichworte** (`Config.DispatchStichworte`, `Config.DispatchStichwortList`): realistische Meldungstexte (Patientenverlegung, NEF/Ärztliche Verlegung, Klinikfahrt, Rücktransport, Dialyse …)
+- **Keine Dispatch-Notify** (`Config.SuppressDispatchNotify`): Alarmierung ausschließlich über EMD
 
 Einsätze werden in der MySQL-Tabelle **`ktjobs_missions`** gespeichert.
 
@@ -106,4 +109,4 @@ exports['emergencydispatch']:mannedvehicles()
 TriggerEvent('emergencydispatch:emergencycall:new', job, message, coords, true)
 ```
 
-Die Meldung enthält Dispatch-Text, Ziel-PLZ und Strecke (z. B. `Krankentransport (Ziel PLZ 8041) | Strecke 2.4 km / ~3 Min`).
+Die Meldung enthält das gewählte Stichwort, optionalen Zusatztext, Ziel-PLZ und Strecke (z. B. `Patientenverlegung – Abholung und Transport ins Ziel-KH (PLZ 8041) | Strecke 2.4 km / ~3 Min`).

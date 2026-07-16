@@ -21,6 +21,7 @@ local function rowToMission(row)
         type = row.mission_type,
         job = row.job,
         text = row.dispatch_text,
+        stichwort = row.dispatch_stichwort or '',
         start = { x = row.start_x, y = row.start_y, z = row.start_z },
         target = { x = row.target_x, y = row.target_y, z = row.target_z },
         reward = {
@@ -46,6 +47,7 @@ local function missionToParams(mission, sortOrder)
         mission.type,
         mission.job,
         mission.text,
+        mission.stichwort or '',
         mission.start.x or 0,
         mission.start.y or 0,
         mission.start.z or 0,
@@ -107,16 +109,17 @@ end
 function Storage.UpsertMission(mission, sortOrder)
     local query = ([[
         INSERT INTO `%s` (
-            id, sort_order, enabled, mission_type, job, dispatch_text,
+            id, sort_order, enabled, mission_type, job, dispatch_text, dispatch_stichwort,
             start_x, start_y, start_z, target_x, target_y, target_z,
             reward_enabled, reward_min, reward_max, npc_model, vehicles, items
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             sort_order = VALUES(sort_order),
             enabled = VALUES(enabled),
             mission_type = VALUES(mission_type),
             job = VALUES(job),
             dispatch_text = VALUES(dispatch_text),
+            dispatch_stichwort = VALUES(dispatch_stichwort),
             start_x = VALUES(start_x),
             start_y = VALUES(start_y),
             start_z = VALUES(start_z),

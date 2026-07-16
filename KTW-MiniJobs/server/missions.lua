@@ -232,7 +232,7 @@ function Missions.DispatchMission(mission)
     Missions.SetCooldown(mission.id)
 
     for _, entry in ipairs(assignees) do
-        TriggerClientEvent('nm_ktjobs:client:missionAssigned', entry.source, activeId, mission, message, route)
+        TriggerClientEvent('nm_ktjobs:client:missionAssigned', entry.source, activeId, mission, route)
     end
 
     return true, activeId
