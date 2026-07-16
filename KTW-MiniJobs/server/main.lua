@@ -49,32 +49,8 @@ RegisterNetEvent('nm_ktjobs:server:saveMissions', function(missions)
     TriggerClientEvent('nm_ktjobs:client:configSaved', source, Storage.GetMissions())
 end)
 
-RegisterNetEvent('nm_ktjobs:server:acceptMission', function(activeId)
-    local source = source
-    local active = Missions.GetActive(activeId)
-    if not active or active.acceptedBy then
-        return
-    end
-
-    if Framework.GetJob(source) ~= active.mission.job then
-        Framework.Notify(source, 'Du hast nicht den richtigen Job für diesen Einsatz.', 'error')
-        return
-    end
-
-    local ped = GetPlayerPed(source)
-    local coords = GetEntityCoords(ped)
-    local start = Utils.CoordsToVector3(active.mission.start)
-    if #(coords - start) > Config.AcceptRadius + 5.0 then
-        Framework.Notify(source, 'Du bist nicht am Startpunkt.', 'error')
-        return
-    end
-
-    active.acceptedBy = source
-    active.state = 'accepted'
-    Missions.GiveMissionItems(source, active.mission)
-
-    TriggerClientEvent('nm_ktjobs:client:missionAccepted', source, activeId, active.mission)
-    TriggerClientEvent('nm_ktjobs:client:missionEnded', -1, activeId, 'taken', 0)
+RegisterNetEvent('nm_ktjobs:server:arrivedAtStart', function(activeId)
+    Missions.ArrivedAtStart(source, activeId)
 end)
 
 RegisterNetEvent('nm_ktjobs:server:completeMission', function(activeId)

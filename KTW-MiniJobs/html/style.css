@@ -19,11 +19,31 @@
     padding: 0;
 }
 
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: transparent !important;
+    background-color: rgba(0, 0, 0, 0) !important;
+    overflow: hidden;
+}
+
 body {
     font-family: var(--font);
     color: var(--text);
+}
+
+#root {
+    width: 100%;
+    height: 100%;
     background: transparent;
-    overflow: hidden;
+    pointer-events: none;
+}
+
+#root > .app:not(.hidden),
+#root > .placement-overlay:not(.hidden) {
+    pointer-events: auto;
 }
 
 .hidden {
@@ -423,6 +443,17 @@ body.scrollbar-dragging .custom-scrollbar-thumb {
     color: var(--muted);
     letter-spacing: 0.06em;
     margin-bottom: 8px;
+}
+
+.route-info {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    min-height: 1.2em;
+}
+
+.route-info.has-route {
+    color: #93c5fd;
 }
 
 .coord-row {

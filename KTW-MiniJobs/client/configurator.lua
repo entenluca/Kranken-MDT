@@ -140,6 +140,19 @@ RegisterNUICallback('beginPlacement', function(data, cb)
     cb('ok')
 end)
 
+RegisterNUICallback('calculateRoute', function(data, cb)
+    local start = data.start
+    local target = data.target
+
+    if type(start) ~= 'table' or type(target) ~= 'table' then
+        cb({})
+        return
+    end
+
+    local route = EmergencyDispatchClient.CalculateRoute(start, target)
+    cb(route)
+end)
+
 RegisterNUICallback('checkVehicles', function(data, cb)
     if data.missionId then
         TriggerServerEvent('nm_ktjobs:server:vehicleStatus', data.missionId)

@@ -55,6 +55,46 @@ function formatCoord(value) {
     return value === '' || value === undefined || value === null ? '' : String(value);
 }
 
+function parseCoord(value) {
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function readCoordsFromCard(card, prefix) {
+    return {
+        x: parseCoord(card.querySelector(`.${prefix}-x`)?.value),
+        y: parseCoord(card.querySelector(`.${prefix}-y`)?.value),
+        z: parseCoord(card.querySelector(`.${prefix}-z`)?.value),
+    };
+}
+
+function hasValidCoords(coords) {
+    return coords && ['x', 'y', 'z'].every((axis) => Number.isFinite(coords[axis]));
+}
+
+async function updateRouteInfo(card) {
+    if (!card?._routeInfo) return;
+
+    const start = readCoordsFromCard(card, 'start');
+    const target = readCoordsFromCard(card, 'target');
+
+    if (!hasValidCoords(start) || !hasValidCoords(target)) {
+        card._routeInfo.textContent = '';
+        card._routeInfo.classList.remove('has-route');
+        return;
+    }
+
+    const route = await nui('calculateRoute', { start, target });
+
+    if (route?.distanceLabel) {
+        card._routeInfo.textContent = `Strecke: ${route.distanceLabel} / ~${route.eta} Min`;
+        card._routeInfo.classList.add('has-route');
+    } else {
+        card._routeInfo.textContent = '';
+        card._routeInfo.classList.remove('has-route');
+    }
+}
+
 function buildShell() {
     const root = document.getElementById('root');
     root.replaceChildren();
@@ -75,7 +115,7 @@ function buildShell() {
     }));
 
     const intro = UI.el('p', 'intro', {
-        text: 'Jeder Einsatz gehört zu einem Job und wird per Dispatch verschickt. Koordinaten kannst du vor Ort übernehmen. Änderungen werden erst nach dem Speichern übernommen.',
+        text: 'Jeder Einsatz wird über EmergencyDispatch alarmiert und direkt besetzten Fahrzeugen zugewiesen. Koordinaten kannst du vor Ort übernehmen. Änderungen werden erst nach dem Speichern übernommen.',
     });
 
     const toolbar = UI.el('div', 'toolbar');
@@ -372,6 +412,18 @@ function createMissionCard(mission) {
     coords.appendChild(createCoordBlock('ZIEL', 'target', mission, mission.id));
     body.appendChild(coords);
 
+    const routeInfo = UI.el('div', 'route-info');
+    body.appendChild(routeInfo);
+    card._routeInfo = routeInfo;
+
+    const scheduleRouteUpdate = () => updateRouteInfo(card);
+    coords.querySelectorAll('input').forEach((input) => {
+        input.addEventListener('change', scheduleRouteUpdate);
+        input.addEventListener('input', scheduleRouteUpdate);
+    });
+
+    setTimeout(() => updateRouteInfo(card), 0);
+
     const rewardSection = UI.section(
         'BELOHNUNG',
         'Optional. Bei Aktivierung wird der Betrag auf das Geschäftskonto des eingestellten Jobs gutgeschrieben.',
@@ -444,7 +496,7 @@ function createMissionCard(mission) {
 
     const itemSection = UI.section(
         'MTD-ITEMS',
-        'Items werden bei Annahme vergeben und bei Abschluss oder Abbruch entfernt.',
+        'Items werden am Startpunkt vergeben und bei Abschluss oder Abbruch entfernt.',
     );
     itemSection.classList.add('mtd-only');
     const itemList = UI.el('div', 'item-list');

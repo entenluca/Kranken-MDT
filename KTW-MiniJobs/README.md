@@ -43,13 +43,14 @@ Bereits berechtigt sind standardmäßig:
 |--------|--------------|
 | `/ktjobs` | Öffnet den In-Game Einsatz-Konfigurator (Admin) |
 
-### Ablauf
+### Ablauf (über EmergencyDispatch)
 
-1. Admin konfiguriert Einsätze im Konfigurator (Typ, Job, Koordinaten, Fahrzeug-Voraussetzungen, optionale Belohnung)
-2. Sind genügend besetzte Fahrzeuge (RTW/KTW) in EmergencyDispatch im Dienst, wird der Einsatz automatisch ausgelöst
-3. Der Dispatch erscheint in **EmergencyDispatch** inkl. Ziel-Postleitzahl
-4. Spieler mit passendem Job fahren zum Startpunkt und nehmen den Einsatz an (`E`)
-5. Transport zum Ziel und Abschluss mit `E` (Abbruch mit `BACKSPACE`)
+1. Admin konfiguriert Einsätze im Konfigurator (Typ, Job, Start/Ziel, Fahrzeug-Voraussetzungen, optionale Belohnung)
+2. Sind genügend **freie** besetzte Fahrzeuge (RTW/KTW, kein aktiver EMD-Einsatz) im Dienst, wird der Einsatz automatisch ausgelöst
+3. Der Dispatch erscheint in **EmergencyDispatch** am **Startpunkt** inkl. Ziel-PLZ und berechneter Strecke/Fahrzeit
+4. Die passenden Fahrzeuge werden **direkt zugewiesen** (kein offener Einsatz für alle)
+5. Besatzung fährt über **EMD-Navigation** (Funkgerät: Einsatzort → Zielort) zum Start, bestätigt dort mit `E`
+6. Transport zum Ziel und Abschluss mit `E` (Abbruch mit `BACKSPACE`)
 
 ## Belohnung
 
@@ -61,26 +62,20 @@ Nur **RTW** und **KTW** sind erlaubt. Die Besetzung wird über den EmergencyDisp
 
 ## Jobs
 
-Verfügbare Jobs werden aus der Tabelle **`ktjobs_jobs`** geladen (nicht mehr aus der `config.lua`).
+Alle Jobs im Konfigurator werden aus der **Framework-`jobs`-Tabelle** der Datenbank geladen (ESX/QB). Es werden alle Einträge aus dieser Tabelle angezeigt – keine separate Liste in der `config.lua`.
 
-Beispiel-Einträge werden beim ersten Start automatisch angelegt (`ambulance`, `fire`). Weitere Jobs per SQL hinzufügen:
+Tabellenname in `config.lua` anpassbar:
 
-```sql
-INSERT INTO ktjobs_jobs (name, label, sort_order, enabled)
-VALUES ('ambulance', 'Rettungsdienst', 1, 1);
+```lua
+Config.JobsTable = 'jobs'
 ```
-
-| Spalte | Bedeutung |
-|--------|-----------|
-| `name` | Framework-Jobname (z. B. `ambulance`) |
-| `label` | Anzeige im Konfigurator |
-| `sort_order` | Sortierung |
-| `enabled` | `1` = im Konfigurator sichtbar |
 
 ## Konfiguration
 
 - **Fahrzeugtypen** (`Config.AllowedVehicleTypes`): `RTW`, `KTW`
 - **Postleitzahl** (`Config.PostalResource`): `auto`, `nearest-postal`, `postals` oder `none`
+- **EMD-Navigation** (`Config.UseEmdNavigation`): keine eigenen Blips/Wegpunkte, Navigation über EMD-Funkgerät
+- **Routenberechnung** (`Config.RouteSpeedKmh`, `Config.RouteRoadFactor`): Fahrzeit-Schätzung im Dispatch-Text
 
 Einsätze werden in der MySQL-Tabelle **`ktjobs_missions`** gespeichert.
 
@@ -90,13 +85,13 @@ Einsätze werden in der MySQL-Tabelle **`ktjobs_missions`** gespeichert.
 
 ```lua
 exports['emergencydispatch']:mannedvehicles()
--- type: Fahrzeugtyp (z. B. RTW, KTW), job: Job des Fahrzeugs
+-- type: Fahrzeugtyp (z. B. RTW, KTW), job: Job des Fahrzeugs, dispatch: 0 = frei
 ```
 
 **Einsatz senden:**
 
 ```lua
-TriggerEvent('emergencydispatch:emergencycall:new', job, message, coords, false)
+TriggerEvent('emergencydispatch:emergencycall:new', job, message, coords, true)
 ```
 
-Die Meldung enthält den Dispatch-Text und die Ziel-PLZ (z. B. `Krankentransport (PLZ 8041)`).
+Die Meldung enthält Dispatch-Text, Ziel-PLZ und Strecke (z. B. `Krankentransport (Ziel PLZ 8041) | Strecke 2.4 km / ~3 Min`).

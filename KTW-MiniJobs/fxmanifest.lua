@@ -4,7 +4,7 @@ game 'gta5'
 name 'KTW-MiniJobs'
 description 'Automatische MTD- und Krankentransporte mit Einsatz-Konfigurator'
 author ''
-version '1.1.0'
+version '1.2.0'
 
 lua54 'yes'
 
@@ -24,6 +24,7 @@ shared_scripts {
 }
 
 client_scripts {
+    'bridge/emergencydispatch_client.lua',
     'client/main.lua',
     'client/missions.lua',
     'client/configurator.lua',

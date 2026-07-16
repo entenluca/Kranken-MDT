@@ -42,8 +42,20 @@ Config.EmergencyDispatchResource = 'emergencydispatch'
 -- EmergencyDispatch Event für neue Einsätze
 Config.DispatchEvent = 'emergencydispatch:emergencycall:new'
 
--- Postleitzahl in Dispatch-Text einfügen
-Config.PostalMessageTemplate = '%s (PLZ %s)'
+-- Postleitzahl und Strecke in Dispatch-Text (Platzhalter: Text, Ziel-PLZ, Strecke, Fahrzeit)
+Config.PostalMessageTemplate = '%s (Ziel PLZ %s) | Strecke %s / ~%s Min'
+
+-- EMD: Blip auf der Karte bei Dispatch anzeigen
+Config.DispatchShowBlip = true
+
+-- Navigation über EMD-Funkgerät (keine eigenen Blips/Wegpunkte)
+Config.UseEmdNavigation = true
+
+-- Geschätzte Fahrgeschwindigkeit für Routenberechnung (km/h)
+Config.RouteSpeedKmh = 60
+
+-- Straßenfaktor für Server-Schätzung (Luftlinie × Faktor)
+Config.RouteRoadFactor = 1.35
 
 -- Gesellschaftskonto-Präfix (ESX: society_<job>)
 Config.SocietyPrefix = 'society_'

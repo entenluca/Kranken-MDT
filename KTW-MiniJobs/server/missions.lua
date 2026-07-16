@@ -1,7 +1,6 @@
 Missions = {
     cooldowns = {},
     active = {},
-    pendingDispatch = {},
 }
 
 local function getOccupiedVehicleCounts(jobName)
@@ -10,7 +9,7 @@ end
 
 function Missions.VehicleRequirementsMet(mission)
     if not mission.vehicles or #mission.vehicles == 0 then
-        return true
+        return #EmergencyDispatch.SelectVehiclesForMission(mission) > 0
     end
 
     local counts = getOccupiedVehicleCounts(mission.job)
@@ -23,7 +22,7 @@ function Missions.VehicleRequirementsMet(mission)
         end
     end
 
-    return true
+    return #EmergencyDispatch.SelectVehiclesForMission(mission) > 0
 end
 
 function Missions.GetVehicleStatus(mission)
@@ -60,21 +59,38 @@ function Missions.CountActive()
     return count
 end
 
-function Missions.CreateActive(mission)
+function Missions.CreateActive(mission, assignees, route)
     local activeId = ('a_%s_%s'):format(mission.id, os.time())
+    local assignedTo = {}
+
+    for _, entry in ipairs(assignees) do
+        assignedTo[entry.source] = {
+            source = entry.source,
+            type = EmergencyDispatch.NormalizeVehicleType(entry.type),
+            value = entry.value,
+            veh = entry.veh,
+        }
+    end
+
     Missions.active[activeId] = {
         id = activeId,
         missionId = mission.id,
         mission = mission,
-        acceptedBy = nil,
-        state = 'dispatched',
+        assignedTo = assignedTo,
+        state = 'assigned',
+        route = route,
         createdAt = os.time(),
     }
+
     return activeId, Missions.active[activeId]
 end
 
 function Missions.GetActive(activeId)
     return Missions.active[activeId]
+end
+
+function Missions.IsAssigned(active, source)
+    return active and active.assignedTo and active.assignedTo[source] ~= nil
 end
 
 function Missions.RemoveActive(activeId)
@@ -96,15 +112,25 @@ function Missions.DispatchMission(mission)
         end
     end
 
-    local message = Dispatch.BuildMessage(mission)
-    if not Dispatch.Send(mission.job, message, mission.start) then
+    local assignees = EmergencyDispatch.SelectVehiclesForMission(mission)
+    if #assignees == 0 then
         return false
     end
 
-    local activeId = Missions.CreateActive(mission)
+    local route = Dispatch.BuildRouteInfo(mission)
+    local message = Dispatch.BuildMessage(mission, route)
+
+    if not Dispatch.Send(mission.job, message, mission.start, Config.DispatchShowBlip) then
+        return false
+    end
+
+    local activeId = Missions.CreateActive(mission, assignees, route)
     Missions.SetCooldown(mission.id)
 
-    TriggerClientEvent('nm_ktjobs:client:missionDispatched', -1, activeId, mission, message)
+    for _, entry in ipairs(assignees) do
+        TriggerClientEvent('nm_ktjobs:client:missionAssigned', entry.source, activeId, mission, message, route)
+    end
+
     return true, activeId
 end
 
@@ -128,9 +154,48 @@ function Missions.RemoveMissionItems(source, mission)
     end
 end
 
+function Missions.ArrivedAtStart(source, activeId)
+    local active = Missions.GetActive(activeId)
+    if not active or not Missions.IsAssigned(active, source) then
+        return false
+    end
+
+    if active.state ~= 'assigned' then
+        return false
+    end
+
+    local ped = GetPlayerPed(source)
+    local coords = GetEntityCoords(ped)
+    local start = Utils.CoordsToVector3(active.mission.start)
+
+    if #(coords - start) > Config.AcceptRadius + 5.0 then
+        Framework.Notify(source, 'Du bist nicht am Startpunkt.', 'error')
+        return false
+    end
+
+    active.state = 'transport'
+    Missions.GiveMissionItems(source, active.mission)
+
+    TriggerClientEvent('nm_ktjobs:client:missionTransport', source, activeId, active.mission)
+    return true
+end
+
 function Missions.CompleteMission(source, activeId)
     local active = Missions.GetActive(activeId)
-    if not active or active.acceptedBy ~= source then
+    if not active or not Missions.IsAssigned(active, source) then
+        return false
+    end
+
+    if active.state ~= 'transport' then
+        return false
+    end
+
+    local ped = GetPlayerPed(source)
+    local coords = GetEntityCoords(ped)
+    local target = Utils.CoordsToVector3(active.mission.target)
+
+    if #(coords - target) > Config.CompleteRadius + 5.0 then
+        Framework.Notify(source, 'Du bist nicht am Zielpunkt.', 'error')
         return false
     end
 
@@ -150,7 +215,7 @@ end
 
 function Missions.CancelMission(source, activeId)
     local active = Missions.GetActive(activeId)
-    if not active or active.acceptedBy ~= source then
+    if not active or not Missions.IsAssigned(active, source) then
         return false
     end
 

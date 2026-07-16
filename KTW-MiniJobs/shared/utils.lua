@@ -47,6 +47,46 @@ function Utils.Distance(a, b)
     return #(Utils.CoordsToVector3(a) - Utils.CoordsToVector3(b))
 end
 
+function Utils.FormatDistance(meters)
+    local value = tonumber(meters) or 0.0
+
+    if value >= 1000.0 then
+        return ('%.1f km'):format(value / 1000.0)
+    end
+
+    return ('%d m'):format(math.floor(value + 0.5))
+end
+
+function Utils.EstimateTravelMinutes(distanceMeters, speedKmh)
+    local speed = tonumber(speedKmh) or 60
+    if speed <= 0 then
+        speed = 60
+    end
+
+    local distanceKm = (tonumber(distanceMeters) or 0.0) / 1000.0
+    return math.max(1, math.ceil((distanceKm / speed) * 60.0))
+end
+
+function Utils.BuildRouteInfo(startCoords, targetCoords, options)
+    options = options or {}
+
+    local start = Utils.CoordsToVector3(startCoords)
+    local target = Utils.CoordsToVector3(targetCoords)
+    local distance = #(start - target)
+
+    if options.roadFactor then
+        distance = distance * options.roadFactor
+    end
+
+    local speedKmh = options.speedKmh or 60
+
+    return {
+        distance = distance,
+        distanceLabel = Utils.FormatDistance(distance),
+        eta = Utils.EstimateTravelMinutes(distance, speedKmh),
+    }
+end
+
 function Utils.ClampReward(reward)
     local min = math.floor(tonumber(reward.min) or 0)
     local max = math.floor(tonumber(reward.max) or min)

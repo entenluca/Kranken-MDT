@@ -1,38 +1,15 @@
-local pendingMissions = {}
 local currentMission = nil
-local missionBlips = {}
 local missionNpc = nil
 
 RegisterNetEvent('nm_ktjobs:client:notify', function(message, nType)
     Framework.Notify(message, nType)
 end)
 
-local function clearBlips()
-    for _, blip in ipairs(missionBlips) do
-        if DoesBlipExist(blip) then
-            RemoveBlip(blip)
-        end
-    end
-    missionBlips = {}
-end
-
 local function clearNpc()
     if missionNpc and DoesEntityExist(missionNpc) then
         DeleteEntity(missionNpc)
     end
     missionNpc = nil
-end
-
-local function addBlip(coords, sprite, color, label)
-    local blip = AddBlipForCoord(coords.x, coords.y, coords.z)
-    SetBlipSprite(blip, sprite)
-    SetBlipColour(blip, color)
-    SetBlipScale(blip, 0.85)
-    SetBlipAsShortRange(blip, false)
-    BeginTextCommandSetBlipName('STRING')
-    AddTextComponentSubstringPlayerName(label)
-    EndTextCommandSetBlipName(blip)
-    missionBlips[#missionBlips + 1] = blip
 end
 
 local function spawnKtNpc(mission)
@@ -58,50 +35,54 @@ local function spawnKtNpc(mission)
 end
 
 local function cleanupMission()
-    clearBlips()
     clearNpc()
     currentMission = nil
 end
 
-RegisterNetEvent('nm_ktjobs:client:missionDispatched', function(activeId, mission, message)
+local function notifyEmdNavigation()
+    if Config.UseEmdNavigation then
+        Framework.Notify('Navigation über das EMD-Funkgerät: Einsatzort → Zielort.', 'inform')
+    end
+end
+
+RegisterNetEvent('nm_ktjobs:client:missionAssigned', function(activeId, mission, message, route)
     if Framework.GetPlayerJob() ~= mission.job then
         return
     end
 
-    pendingMissions[activeId] = mission
-    Framework.Notify(message, 'inform')
-    addBlip(mission.start, 280, 3, 'Offener Transport')
-end)
-
-RegisterNetEvent('nm_ktjobs:client:missionAccepted', function(activeId, mission)
-    pendingMissions[activeId] = nil
     cleanupMission()
 
     currentMission = {
         activeId = activeId,
         mission = mission,
+        route = route,
+        phase = 'to_start',
     }
 
-    clearBlips()
-    addBlip(mission.start, 1, 3, 'Einsatz Start')
-    addBlip(mission.target, 1, 2, 'Einsatz Ziel')
-    SetNewWaypoint(mission.target.x, mission.target.y)
+    if EmergencyDispatchClient.IsEmd() then
+        Framework.Notify(message, 'inform')
+        notifyEmdNavigation()
+    else
+        Framework.Notify('Einsatz alarmiert – besetze ein Fahrzeug in EmergencyDispatch.', 'inform')
+    end
+end)
+
+RegisterNetEvent('nm_ktjobs:client:missionTransport', function(activeId, mission)
+    if not currentMission or currentMission.activeId ~= activeId then
+        return
+    end
+
+    currentMission.phase = 'to_target'
 
     if mission.type == 'KT' then
         spawnKtNpc(mission)
     end
 
-    Framework.Notify('Einsatz angenommen. Fahre zum Ziel.', 'success')
+    Framework.Notify('Transport gestartet. Fahre zum Ziel.', 'success')
+    notifyEmdNavigation()
 end)
 
 RegisterNetEvent('nm_ktjobs:client:missionEnded', function(activeId, state, reward, job)
-    pendingMissions[activeId] = nil
-
-    if state == 'taken' then
-        clearBlips()
-        return
-    end
-
     if not currentMission or currentMission.activeId ~= activeId then
         return
     end
@@ -114,70 +95,67 @@ RegisterNetEvent('nm_ktjobs:client:missionEnded', function(activeId, state, rewa
         else
             Framework.Notify('Transport abgeschlossen.', 'success')
         end
+    elseif state == 'cancelled' then
+        Framework.Notify('Einsatz abgebrochen.', 'error')
     end
 end)
 
 CreateThread(function()
     while true do
         local sleep = 1000
-        local ped = PlayerPedId()
-        local coords = GetEntityCoords(ped)
-        local job = Framework.GetPlayerJob()
 
         if currentMission then
             sleep = 0
+            local ped = PlayerPedId()
+            local coords = GetEntityCoords(ped)
             local mission = currentMission.mission
-            local target = Utils.CoordsToVector3(mission.target)
-            local distTarget = #(coords - target)
+            local phase = currentMission.phase
 
-            if distTarget <= Config.CompleteRadius then
-                DrawMarker(1, target.x, target.y, target.z - 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 3.0, 1.0, 46, 204, 113, 120, false, false, 2, false, nil, nil, false)
+            if not EmergencyDispatchClient.IsEmd() then
                 BeginTextCommandDisplayHelp('STRING')
-                AddTextComponentSubstringPlayerName('Drücke ~INPUT_CONTEXT~ um den Einsatz abzuschließen')
+                AddTextComponentSubstringPlayerName('Besetze ein Fahrzeug in EmergencyDispatch, um den Einsatz fortzusetzen.')
                 EndTextCommandDisplayHelp(0, false, true, -1)
+            elseif phase == 'to_start' then
+                local start = Utils.CoordsToVector3(mission.start)
+                local dist = #(coords - start)
 
-                if IsControlJustReleased(0, 38) then
-                    TriggerServerEvent('nm_ktjobs:server:completeMission', currentMission.activeId)
+                if dist <= Config.AcceptRadius then
+                    DrawMarker(1, start.x, start.y, start.z - 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.5, 2.5, 1.0, 52, 152, 219, 120, false, false, 2, false, nil, nil, false)
+
+                    if dist <= 4.0 then
+                        BeginTextCommandDisplayHelp('STRING')
+                        AddTextComponentSubstringPlayerName('Drücke ~INPUT_CONTEXT~ am Startpunkt')
+                        EndTextCommandDisplayHelp(0, false, true, -1)
+
+                        if IsControlJustReleased(0, 38) then
+                            TriggerServerEvent('nm_ktjobs:server:arrivedAtStart', currentMission.activeId)
+                        end
+                    end
+                end
+            elseif phase == 'to_target' then
+                local target = Utils.CoordsToVector3(mission.target)
+                local distTarget = #(coords - target)
+
+                if distTarget <= Config.CompleteRadius then
+                    DrawMarker(1, target.x, target.y, target.z - 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 3.0, 1.0, 46, 204, 113, 120, false, false, 2, false, nil, nil, false)
+                    BeginTextCommandDisplayHelp('STRING')
+                    AddTextComponentSubstringPlayerName('Drücke ~INPUT_CONTEXT~ um den Einsatz abzuschließen')
+                    EndTextCommandDisplayHelp(0, false, true, -1)
+
+                    if IsControlJustReleased(0, 38) then
+                        TriggerServerEvent('nm_ktjobs:server:completeMission', currentMission.activeId)
+                    end
                 end
             end
 
             if IsControlJustReleased(0, 177) then
                 TriggerServerEvent('nm_ktjobs:server:cancelMission', currentMission.activeId)
             end
-        elseif job then
-            for activeId, mission in pairs(pendingMissions) do
-                if mission.job == job then
-                    local start = Utils.CoordsToVector3(mission.start)
-                    local dist = #(coords - start)
-
-                    if dist <= Config.AcceptRadius then
-                        sleep = 0
-                        DrawMarker(1, start.x, start.y, start.z - 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.5, 2.5, 1.0, 52, 152, 219, 120, false, false, 2, false, nil, nil, false)
-
-                        if dist <= 4.0 then
-                            BeginTextCommandDisplayHelp('STRING')
-                            AddTextComponentSubstringPlayerName('Drücke ~INPUT_CONTEXT~ um den Einsatz anzunehmen')
-                            EndTextCommandDisplayHelp(0, false, true, -1)
-
-                            if IsControlJustReleased(0, 38) then
-                                TriggerServerEvent('nm_ktjobs:server:acceptMission', activeId)
-                            end
-                        end
-                    end
-                end
-            end
         end
 
         Wait(sleep)
     end
 end)
-
-RegisterCommand('ktaccept', function(_, args)
-    local activeId = args[1]
-    if activeId then
-        TriggerServerEvent('nm_ktjobs:server:acceptMission', activeId)
-    end
-end, false)
 
 AddEventHandler('onResourceStop', function(resourceName)
     if resourceName ~= GetCurrentResourceName() then
