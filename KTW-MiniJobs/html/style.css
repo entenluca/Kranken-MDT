@@ -11,6 +11,10 @@
     --input-bg: #111827;
     --radius: 10px;
     --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --minimap-offset-x: 1.85vw;
+    --minimap-offset-y: 4.2vh;
+    --minimap-size: 27vh;
+    --placement-gap: 1rem;
 }
 
 * {
@@ -41,8 +45,7 @@ body {
     pointer-events: none;
 }
 
-#root > .app:not(.hidden),
-#root > .placement-overlay:not(.hidden) {
+#root > .app:not(.hidden) {
     pointer-events: auto;
 }
 
@@ -151,20 +154,24 @@ body {
     inset: 0;
     pointer-events: none;
     z-index: 1000;
+    background: transparent !important;
 }
 
 .placement-hint {
-    position: absolute;
-    right: 24px;
-    bottom: 24px;
-    min-width: 280px;
-    max-width: min(420px, calc(100vw - 48px));
+    position: fixed;
+    left: calc(var(--minimap-offset-x) + var(--minimap-size) + var(--placement-gap));
+    bottom: calc(var(--minimap-offset-y) + (var(--minimap-size) * 0.5));
+    transform: translateY(50%);
+    right: auto;
+    min-width: 260px;
+    max-width: min(360px, calc(100vw - var(--minimap-offset-x) - var(--minimap-size) - var(--placement-gap) - 1rem));
     background: rgba(15, 20, 25, 0.92);
     border: 1px solid var(--panel-border);
     border-radius: 12px;
     padding: 16px 18px;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(8px);
+    pointer-events: none;
 }
 
 .placement-hint-text {
