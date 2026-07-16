@@ -10,6 +10,8 @@ const state = {
     defaultNpcModel: '',
     search: '',
     open: false,
+    placing: false,
+    placementKeyLabel: 'E',
     collapsed: new Set(),
 };
 
@@ -143,6 +145,42 @@ function buildShell() {
     refs.searchInput = searchInput;
 
     refs.scrollbar = CustomScrollbar.attach(missionsViewport, scrollbarTrack, scrollbarThumb);
+
+    const placementOverlay = UI.el('div', 'placement-overlay hidden', { id: 'placement-overlay' });
+    const placementHint = UI.el('div', 'placement-hint');
+    placementHint.appendChild(UI.el('p', 'placement-hint-text', { id: 'placement-hint-text' }));
+    placementHint.appendChild(UI.el('span', 'placement-hint-cancel', { text: 'ESC zum Abbrechen' }));
+    placementOverlay.appendChild(placementHint);
+    root.appendChild(placementOverlay);
+
+    refs.placementOverlay = placementOverlay;
+    refs.placementHintText = document.getElementById('placement-hint-text');
+}
+
+function enterPlacementMode(data) {
+    state.placing = true;
+    refs.app.classList.add('hidden');
+    refs.placementOverlay.classList.remove('hidden');
+
+    const label = data.field === 'target' ? 'Zielpunkt' : 'Startpunkt';
+    const key = data.key || state.placementKeyLabel || 'E';
+    refs.placementHintText.textContent = `Drücke [${key}], um den ${label} zu setzen.`;
+}
+
+function exitPlacementMode() {
+    state.placing = false;
+    refs.placementOverlay.classList.add('hidden');
+    if (state.open) {
+        refs.app.classList.remove('hidden');
+    }
+}
+
+function applyPlacementResult(data) {
+    const mission = state.missions.find((m) => m.id === data.missionId);
+    if (!mission || !data.field) return;
+
+    mission[data.field] = { x: data.x, y: data.y, z: data.z };
+    renderMissions();
 }
 
 function createCoordBlock(title, prefix, mission, missionId) {
@@ -161,19 +199,18 @@ function createCoordBlock(title, prefix, mission, missionId) {
         row.appendChild(input);
     });
 
-    row.appendChild(UI.iconButton('btn-pos', 'pin', {
-        title: 'Position übernehmen',
-        onClick: async () => {
+    block.appendChild(row);
+
+    const placeLabel = prefix === 'target' ? 'Zielpunkt setzen' : 'Startpunkt setzen';
+    block.appendChild(UI.button('btn-small btn-secondary btn-with-icon btn-place', {
+        icon: 'pin',
+        text: ` ${placeLabel}`,
+        onClick: () => {
             syncFromDom();
-            const result = await nui('getPosition', { field: prefix, missionId });
-            const m = state.missions.find((x) => x.id === missionId);
-            if (!m || !result) return;
-            m[prefix] = { x: result.x, y: result.y, z: result.z };
-            renderMissions();
+            nui('beginPlacement', { field: prefix, missionId });
         },
     }));
 
-    block.appendChild(row);
     return block;
 }
 
@@ -524,6 +561,7 @@ function openConfigurator(data) {
     state.jobs = data.jobs || [];
     state.vehicleTypeOptions = data.vehicleTypeOptions || ['RTW', 'KTW'];
     state.displayTitle = data.displayTitle || 'Krankentransport-Jobs';
+    state.placementKeyLabel = data.placementKeyLabel || 'E';
     state.defaultNpcModel = data.defaultNpcModel || '';
     state.search = '';
     state.open = true;
@@ -535,7 +573,9 @@ function openConfigurator(data) {
 
 function closeConfigurator() {
     state.open = false;
+    state.placing = false;
     refs.app.classList.add('hidden');
+    refs.placementOverlay.classList.add('hidden');
     document.querySelectorAll('.dropdown.open').forEach((d) => d.classList.remove('open'));
 }
 
@@ -574,6 +614,12 @@ window.addEventListener('message', (event) => {
 
     if (action === 'open') openConfigurator(data);
     if (action === 'close') closeConfigurator();
+    if (action === 'placementMode') enterPlacementMode(data);
+    if (action === 'placementDone') {
+        applyPlacementResult(data);
+        exitPlacementMode();
+    }
+    if (action === 'placementCancel') exitPlacementMode();
     if (action === 'saved' && data?.missions) {
         state.missions = data.missions;
         renderMissions();
@@ -584,5 +630,7 @@ window.addEventListener('message', (event) => {
 });
 
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && state.open) nui('close');
+    if (e.key === 'Escape' && state.open && !state.placing) {
+        nui('close');
+    }
 });

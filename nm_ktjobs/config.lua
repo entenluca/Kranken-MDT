@@ -71,3 +71,8 @@ Config.AdminAces = {
 
 -- Zusätzlich Framework-Admins erlauben (ESX admin/superadmin, QB god/admin)
 Config.AllowFrameworkAdmins = true
+
+-- Taste zum Setzen von Start-/Zielpunkt im Konfigurator (38 = E)
+Config.PlacementKey = 38
+Config.PlacementKeyLabel = 'E'
+Config.PlacementCancelKey = 322

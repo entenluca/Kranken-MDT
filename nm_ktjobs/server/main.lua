@@ -19,6 +19,7 @@ local function buildConfiguratorPayload()
         vehicleTypeOptions = Config.AllowedVehicleTypes,
         defaultNpcModel = Config.DefaultNpcModel,
         displayTitle = Config.DisplayTitle,
+        placementKeyLabel = Config.PlacementKeyLabel,
     }
 end
 
