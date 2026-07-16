@@ -5,6 +5,7 @@ local function setNuiFocus(state)
     configuratorOpen = state
     SetNuiFocus(state, state)
     SetNuiFocusKeepInput(false)
+    DisplayRadar(true)
 end
 
 local function cancelPlacement()
@@ -41,6 +42,7 @@ local function startPlacement(field, missionId)
 
     placementActive = true
     SetNuiFocus(false, false)
+    DisplayRadar(true)
 
     SendNUIMessage({
         action = 'placementMode',

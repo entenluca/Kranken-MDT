@@ -15,6 +15,7 @@
     --minimap-offset-y: 4.2vh;
     --minimap-size: 27vh;
     --placement-gap: 1rem;
+    --minimap-cutout-padding: 0.75rem;
 }
 
 * {
@@ -65,6 +66,16 @@ body {
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.55);
+    clip-path: polygon(
+        0% 0%,
+        100% 0%,
+        100% 100%,
+        calc(var(--minimap-offset-x) + var(--minimap-size) + var(--minimap-cutout-padding)) 100%,
+        calc(var(--minimap-offset-x) + var(--minimap-size) + var(--minimap-cutout-padding)) calc(100% - var(--minimap-offset-y) - var(--minimap-size) - var(--minimap-cutout-padding)),
+        calc(var(--minimap-offset-x) - var(--minimap-cutout-padding)) calc(100% - var(--minimap-offset-y) - var(--minimap-size) - var(--minimap-cutout-padding)),
+        calc(var(--minimap-offset-x) - var(--minimap-cutout-padding)) 100%,
+        0% 100%
+    );
 }
 
 .modal {
