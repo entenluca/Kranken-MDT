@@ -45,12 +45,19 @@ Bereits berechtigt sind standardmäßig:
 |--------|--------------|
 | `/ktjobs` | Öffnet den **ox_lib** Einsatz-Konfigurator (Admin) |
 
+Pro Einsatz im Konfigurator:
+
+| Aktion | Beschreibung |
+|--------|--------------|
+| **Intervall (Minuten)** | Automatische Wiederholung, z. B. `15` = alle 15 Minuten; `0` = nur manuell |
+| **Test-Auslösung** | Sendet den Einsatz sofort an EMD (Cooldown wird ignoriert) |
+
 Der Konfigurator nutzt **ox_lib Context-Menüs** und **Input-Dialoge** – keine eigene NUI mehr.
 
 ### Ablauf (über EmergencyDispatch)
 
-1. Admin konfiguriert Einsätze im Konfigurator (Typ, Job, **EMD-Stichwort**, Start/Ziel, Fahrzeug-Voraussetzungen, optionale Belohnung)
-2. Sind genügend **freie** besetzte Fahrzeuge (RTW/KTW, kein aktiver EMD-Einsatz) im Dienst, wird der Einsatz automatisch ausgelöst
+1. Admin konfiguriert Einsätze im Konfigurator (Typ, Job, **EMD-Stichwort**, **Intervall**, Start/Ziel, Fahrzeug-Voraussetzungen, optionale Belohnung)
+2. Sind genügend **freie** besetzte Fahrzeuge (RTW/KTW, kein aktiver EMD-Einsatz) im Dienst, wird der Einsatz automatisch ausgelöst – im eingestellten **Intervall** (z. B. alle 15 Minuten)
 3. Die Alarmierung erfolgt **nur über EmergencyDispatch** – keine Framework-Notify bei Zuweisung (`Config.SuppressDispatchNotify`)
 4. Der Dispatch erscheint in **EmergencyDispatch** am **Startpunkt** mit Rettungsdienst-Stichwort, Ziel-PLZ und berechneter Strecke/Fahrzeit
 5. Die passenden Fahrzeuge werden **direkt zugewiesen** (kein offener Einsatz für alle)
@@ -91,6 +98,7 @@ Config.JobsTable = 'jobs'
 - **Routenberechnung** (`Config.RouteSpeedKmh`, `Config.RouteRoadFactor`): Fahrzeit-Schätzung im Dispatch-Text
 - **EMD-Stichworte** (`Config.DispatchStichworte`, `Config.DispatchStichwortList`): realistische Meldungstexte (Patientenverlegung, NEF/Ärztliche Verlegung, Klinikfahrt, Rücktransport, Dialyse …)
 - **Keine Dispatch-Notify** (`Config.SuppressDispatchNotify`): Alarmierung ausschließlich über EMD
+- **Einsatz-Intervall** (`Config.DefaultMissionIntervalMinutes`): Standard-Minutenabstand für neue Einsätze; pro Einsatz im Konfigurator änderbar
 
 Einsätze werden in der MySQL-Tabelle **`ktjobs_missions`** gespeichert.
 

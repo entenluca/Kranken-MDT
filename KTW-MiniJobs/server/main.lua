@@ -24,6 +24,7 @@ local function buildConfiguratorPayload()
         defaultNpcModel = Config.DefaultNpcModel,
         stichwortList = Config.DispatchStichwortList or {},
         defaultStichwortByType = Config.DefaultStichwortByType or {},
+        defaultIntervalMinutes = Config.DefaultMissionIntervalMinutes or 15,
         displayTitle = Config.DisplayTitle,
         placementKeyLabel = Config.PlacementKeyLabel,
     }
@@ -59,6 +60,19 @@ lib.callback.register('ktjobs:getVehicleStatus', function(source, mission)
     mission.job = Jobs.ResolveJob(mission.job)
 
     return Missions.GetVehicleStatus(mission)
+end)
+
+lib.callback.register('ktjobs:testDispatchMission', function(source, missionPayload)
+    Storage.WaitUntilReady()
+
+    if not isAdmin(source) or type(missionPayload) ~= 'table' then
+        return { ok = false, reason = 'Keine Berechtigung.' }
+    end
+
+    missionPayload.job = Jobs.ResolveJob(missionPayload.job)
+    local mission = Utils.SanitizeMission(missionPayload, VehicleTypes.GetForJob(missionPayload.job))
+
+    return Missions.TestDispatch(mission)
 end)
 
 RegisterNetEvent('nm_ktjobs:server:requestConfigurator', function()

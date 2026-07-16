@@ -12,8 +12,11 @@ Config.ConfiguratorCommand = 'ktjobs'
 -- Intervall in Sekunden, in dem Fahrzeug-Voraussetzungen geprüft werden
 Config.CheckInterval = 30
 
--- Cooldown pro Mission in Sekunden nach Auslösung
+-- Cooldown pro Mission in Sekunden (Fallback, wenn kein Einsatz-Intervall gesetzt)
 Config.MissionCooldown = 600
+
+-- Standard-Intervall für neue Einsätze in Minuten (automatische Wiederholung)
+Config.DefaultMissionIntervalMinutes = 15
 
 -- Maximale gleichzeitig aktive Einsätze (gesamt)
 Config.MaxActiveMissions = 3

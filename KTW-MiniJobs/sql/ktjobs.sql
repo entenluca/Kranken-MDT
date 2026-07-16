@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS `ktjobs_missions` (
     `id` VARCHAR(64) NOT NULL,
     `sort_order` INT NOT NULL DEFAULT 0,
     `enabled` TINYINT(1) NOT NULL DEFAULT 1,
+    `interval_minutes` INT NOT NULL DEFAULT 15,
     `mission_type` VARCHAR(8) NOT NULL DEFAULT 'MTD',
     `job` VARCHAR(64) NOT NULL DEFAULT 'ambulance',
     `dispatch_text` VARCHAR(255) NOT NULL DEFAULT '',

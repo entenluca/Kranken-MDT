@@ -105,17 +105,25 @@ function Database.Migrate()
     local tableName = Database.tableName
     local columns = Database.Query(('SHOW COLUMNS FROM `%s`'):format(tableName))
     local hasStichwort = false
+    local hasInterval = false
 
     for _, column in ipairs(columns) do
         if column.Field == 'dispatch_stichwort' then
             hasStichwort = true
-            break
+        elseif column.Field == 'interval_minutes' then
+            hasInterval = true
         end
     end
 
     if not hasStichwort then
         Database.Execute(('ALTER TABLE `%s` ADD COLUMN `dispatch_stichwort` VARCHAR(64) NOT NULL DEFAULT \'\' AFTER `dispatch_text`'):format(tableName), {})
         print('[ktjobs] Datenbank-Migration: Spalte dispatch_stichwort hinzugefügt.')
+    end
+
+    if not hasInterval then
+        local defaultMinutes = tonumber(Config.DefaultMissionIntervalMinutes) or 15
+        Database.Execute(('ALTER TABLE `%s` ADD COLUMN `interval_minutes` INT NOT NULL DEFAULT %d AFTER `enabled`'):format(tableName, defaultMinutes), {})
+        print('[ktjobs] Datenbank-Migration: Spalte interval_minutes hinzugefügt.')
     end
 end
 

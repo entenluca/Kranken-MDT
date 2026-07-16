@@ -18,6 +18,7 @@ local function rowToMission(row)
     local mission = {
         id = row.id,
         enabled = row.enabled == 1 or row.enabled == true,
+        intervalMinutes = tonumber(row.interval_minutes),
         type = row.mission_type,
         job = row.job,
         text = row.dispatch_text,
@@ -44,6 +45,7 @@ local function missionToParams(mission, sortOrder)
         mission.id,
         sortOrder,
         mission.enabled and 1 or 0,
+        mission.intervalMinutes or 0,
         mission.type,
         mission.job,
         mission.text,
@@ -109,13 +111,14 @@ end
 function Storage.UpsertMission(mission, sortOrder)
     local query = ([[
         INSERT INTO `%s` (
-            id, sort_order, enabled, mission_type, job, dispatch_text, dispatch_stichwort,
+            id, sort_order, enabled, interval_minutes, mission_type, job, dispatch_text, dispatch_stichwort,
             start_x, start_y, start_z, target_x, target_y, target_z,
             reward_enabled, reward_min, reward_max, npc_model, vehicles, items
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             sort_order = VALUES(sort_order),
             enabled = VALUES(enabled),
+            interval_minutes = VALUES(interval_minutes),
             mission_type = VALUES(mission_type),
             job = VALUES(job),
             dispatch_text = VALUES(dispatch_text),

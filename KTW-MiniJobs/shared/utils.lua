@@ -20,6 +20,7 @@ function Utils.DefaultMission()
     return {
         id = Utils.NewMissionId(),
         enabled = true,
+        intervalMinutes = tonumber(Config.DefaultMissionIntervalMinutes) or 15,
         type = 'MTD',
         job = 'ambulance',
         stichwort = (Config.DefaultStichwortByType and Config.DefaultStichwortByType.MTD) or 'patientenverlegung',
@@ -73,6 +74,22 @@ function Utils.SanitizeStichwort(stichwort, missionType)
     end
 
     return defaults.MTD or 'patientenverlegung'
+end
+
+function Utils.SanitizeIntervalMinutes(minutes)
+    local value = tonumber(minutes)
+    if value == nil then
+        return tonumber(Config.DefaultMissionIntervalMinutes) or 15
+    end
+
+    value = math.floor(value)
+    if value < 0 then
+        value = 0
+    elseif value > 1440 then
+        value = 1440
+    end
+
+    return value
 end
 
 function Utils.SanitizeNpcModel(model)
@@ -179,6 +196,7 @@ function Utils.SanitizeMission(mission, allowedTypes)
 
     clean.id = mission.id or Utils.NewMissionId()
     clean.enabled = mission.enabled ~= false
+    clean.intervalMinutes = Utils.SanitizeIntervalMinutes(mission.intervalMinutes)
     clean.type = mission.type == 'KT' and 'KT' or 'MTD'
     clean.job = type(mission.job) == 'string' and mission.job or ''
     clean.stichwort = Utils.SanitizeStichwort(mission.stichwort, clean.type)

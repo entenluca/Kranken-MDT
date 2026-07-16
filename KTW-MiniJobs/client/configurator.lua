@@ -5,6 +5,7 @@ local State = {
     npcModels = {},
     stichwortList = {},
     defaultStichwortByType = {},
+    defaultIntervalMinutes = 15,
     defaultNpcModel = '',
     displayTitle = 'Krankentransport-Jobs',
 }
@@ -30,7 +31,16 @@ end
 local function missionLabel(mission)
     local text = mission.text ~= '' and mission.text or stichwortLabel(mission.stichwort)
     local status = mission.enabled and 'Aktiv' or 'Inaktiv'
-    return ('%s · %s · %s'):format(mission.type, mission.job, text) .. (' (%s)'):format(status)
+    local intervalMinutes = tonumber(mission.intervalMinutes)
+    local intervalText = ''
+
+    if intervalMinutes == 0 then
+        intervalText = ' · nur manuell'
+    elseif intervalMinutes and intervalMinutes > 0 then
+        intervalText = (' · alle %s Min'):format(intervalMinutes)
+    end
+
+    return ('%s · %s · %s'):format(mission.type, mission.job, text) .. intervalText .. (' (%s)'):format(status)
 end
 
 local function jobOptions()
@@ -318,6 +328,14 @@ local function editMissionBasics(missionId)
         label = 'Einsatz aktiv',
         checked = mission.enabled ~= false,
     }
+    dialogFields[#dialogFields + 1] = {
+        type = 'number',
+        label = 'Intervall (Minuten)',
+        description = 'Automatische Wiederholung; 0 = nur Test-Auslösung, kein Auto-Einsatz',
+        default = mission.intervalMinutes ~= nil and mission.intervalMinutes or State.defaultIntervalMinutes,
+        min = 0,
+        max = 1440,
+    }
 
     local input = lib.inputDialog('Einsatz bearbeiten', dialogFields)
 
@@ -326,21 +344,31 @@ local function editMissionBasics(missionId)
         return
     end
 
+    local fieldIndex = {
+        type = 1,
+        job = 2,
+    }
+    local nextIndex = 3
+
+    if #stichworte > 0 then
+        fieldIndex.stichwort = nextIndex
+        nextIndex = nextIndex + 1
+    end
+
+    fieldIndex.text = nextIndex
+    fieldIndex.enabled = nextIndex + 1
+    fieldIndex.intervalMinutes = nextIndex + 2
+
     local previousType = mission.type
-    mission.type = input[1]
-    mission.job = input[2]
-
-    local stichwortIndex = #stichworte > 0 and 3 or nil
-    local textIndex = #stichworte > 0 and 4 or 3
-    local enabledIndex = #stichworte > 0 and 5 or 4
-
-    if stichwortIndex then
-        mission.stichwort = input[stichwortIndex]
+    mission.type = input[fieldIndex.type]
+    mission.job = input[fieldIndex.job]
+    if fieldIndex.stichwort then
+        mission.stichwort = input[fieldIndex.stichwort]
     elseif mission.type ~= previousType then
         mission.stichwort = defaultStichwortForType(mission.type)
     end
 
-    if mission.type ~= previousType and stichwortIndex then
+    if mission.type ~= previousType and fieldIndex.stichwort then
         local oldDefault = defaultStichwortForType(previousType)
         if not mission.stichwort or mission.stichwort == '' or mission.stichwort == oldDefault then
             mission.stichwort = defaultStichwortForType(mission.type)
@@ -348,8 +376,9 @@ local function editMissionBasics(missionId)
     end
 
     mission.stichwort = Utils.SanitizeStichwort(mission.stichwort, mission.type)
-    mission.text = input[textIndex] or ''
-    mission.enabled = input[enabledIndex] == true
+    mission.text = input[fieldIndex.text] or ''
+    mission.enabled = input[fieldIndex.enabled] == true
+    mission.intervalMinutes = Utils.SanitizeIntervalMinutes(input[fieldIndex.intervalMinutes])
 
     local allowedTypes = State.vehicleTypesByJob[mission.job] or {}
     local allowedMap = {}
@@ -615,6 +644,34 @@ local function removeMissionItem(missionId, index)
     lib.showContext('ktjobs_items_' .. missionId)
 end
 
+local function testDispatchMission(missionId)
+    local mission = getMissionById(missionId)
+    if not mission then
+        return
+    end
+
+    local confirmed = lib.alertDialog({
+        header = 'Test-Auslösung',
+        content = 'Einsatz sofort an EmergencyDispatch senden? Cooldown wird dabei ignoriert.',
+        centered = true,
+        cancel = true,
+    })
+
+    if confirmed ~= 'confirm' then
+        lib.showContext('ktjobs_mission_' .. missionId)
+        return
+    end
+
+    local result = lib.callback.await('ktjobs:testDispatchMission', false, mission)
+    if result and result.ok then
+        notify(result.message or 'Test-Auslösung erfolgreich.', result.emdOnly and 'inform' or 'success')
+    else
+        notify((result and result.reason) or 'Test-Auslösung fehlgeschlagen.', 'error')
+    end
+
+    lib.showContext('ktjobs_mission_' .. missionId)
+end
+
 local function deleteMission(missionId)
     local confirmed = lib.alertDialog({
         header = 'Einsatz löschen',
@@ -773,6 +830,14 @@ function registerMissionMenus()
                 end,
             },
             {
+                title = 'Test-Auslösung',
+                description = 'Sendet Einsatz sofort an EMD (ignoriert Cooldown)',
+                icon = 'bell',
+                onSelect = function()
+                    testDispatchMission(missionId)
+                end,
+            },
+            {
                 title = 'Einsatz speichern',
                 icon = 'floppy-disk',
                 onSelect = function()
@@ -882,6 +947,7 @@ function OpenConfigurator()
     State.npcModels = data.npcModels or {}
     State.stichwortList = data.stichwortList or {}
     State.defaultStichwortByType = data.defaultStichwortByType or {}
+    State.defaultIntervalMinutes = data.defaultIntervalMinutes or 15
     State.defaultNpcModel = data.defaultNpcModel or ''
     State.displayTitle = data.displayTitle or 'Krankentransport-Jobs'
 

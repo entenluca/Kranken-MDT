@@ -151,8 +151,25 @@ function Missions.IsOnCooldown(missionId)
     return untilTime ~= nil and untilTime > os.time()
 end
 
-function Missions.SetCooldown(missionId)
-    Missions.cooldowns[missionId] = os.time() + Config.MissionCooldown
+function Missions.GetIntervalSeconds(mission)
+    local minutes = Utils.SanitizeIntervalMinutes(mission and mission.intervalMinutes)
+    if minutes < 1 then
+        return 0
+    end
+    return minutes * 60
+end
+
+function Missions.IsAutoDispatchEnabled(mission)
+    return mission.enabled and Missions.GetIntervalSeconds(mission) > 0
+end
+
+function Missions.SetCooldown(missionId, mission)
+    local seconds = Missions.GetIntervalSeconds(mission)
+    if seconds < 1 then
+        return
+    end
+
+    Missions.cooldowns[missionId] = os.time() + seconds
 end
 
 function Missions.CountActive()
@@ -201,41 +218,115 @@ function Missions.RemoveActive(activeId)
     Missions.active[activeId] = nil
 end
 
-function Missions.DispatchMission(mission)
-    if Missions.IsOnCooldown(mission.id) then
-        return false
+function Missions.DispatchMission(mission, options)
+    options = options or {}
+
+    if not options.bypassCooldown and Missions.IsOnCooldown(mission.id) then
+        return false, 'cooldown'
     end
 
-    if Missions.CountActive() >= Config.MaxActiveMissions then
-        return false
+    if not options.bypassLimits and Missions.CountActive() >= Config.MaxActiveMissions then
+        return false, 'max_active'
     end
 
-    for _, active in pairs(Missions.active) do
-        if active.missionId == mission.id and active.state ~= 'completed' then
-            return false
+    if not options.bypassLimits then
+        for _, active in pairs(Missions.active) do
+            if active.missionId == mission.id and active.state ~= 'completed' then
+                return false, 'already_active'
+            end
         end
     end
 
     local assignees = EmergencyDispatch.SelectVehiclesForMission(mission)
     if #assignees == 0 then
-        return false
+        return false, 'no_vehicles'
     end
 
     local route = Dispatch.BuildRouteInfo(mission)
     local message = Dispatch.BuildMessage(mission, route)
 
     if not Dispatch.Send(mission.job, message, mission.start, Config.DispatchShowBlip) then
-        return false
+        return false, 'emd_unavailable'
     end
 
     local activeId = Missions.CreateActive(mission, assignees, route)
-    Missions.SetCooldown(mission.id)
+
+    if not options.skipCooldown then
+        Missions.SetCooldown(mission.id, mission)
+    end
 
     for _, entry in ipairs(assignees) do
         TriggerClientEvent('nm_ktjobs:client:missionAssigned', entry.source, activeId, mission, route)
     end
 
     return true, activeId
+end
+
+function Missions.TestDispatch(mission)
+    mission.job = Jobs.ResolveJob(mission.job)
+    mission = Utils.SanitizeMission(mission, VehicleTypes.GetForJob(mission.job))
+
+    if mission.job == '' then
+        return { ok = false, reason = 'Kein Job ausgewählt.' }
+    end
+
+    local start = Utils.CoordsToVector3(mission.start)
+    local target = Utils.CoordsToVector3(mission.target)
+
+    if start.x == 0.0 and start.y == 0.0 and start.z == 0.0 then
+        return { ok = false, reason = 'Startpunkt ist nicht gesetzt.' }
+    end
+
+    if target.x == 0.0 and target.y == 0.0 and target.z == 0.0 then
+        return { ok = false, reason = 'Zielpunkt ist nicht gesetzt.' }
+    end
+
+    local route = Dispatch.BuildRouteInfo(mission)
+    local message = Dispatch.BuildMessage(mission, route)
+
+    if not Dispatch.Send(mission.job, message, mission.start, Config.DispatchShowBlip) then
+        return { ok = false, reason = 'EmergencyDispatch ist nicht erreichbar.' }
+    end
+
+    local assignees = EmergencyDispatch.SelectVehiclesForMission(mission)
+    if #assignees == 0 then
+        return {
+            ok = true,
+            emdOnly = true,
+            message = 'EMD-Meldung gesendet. Keine freien Fahrzeuge für Zuweisung verfügbar.',
+        }
+    end
+
+    if Missions.CountActive() >= Config.MaxActiveMissions then
+        return {
+            ok = true,
+            emdOnly = true,
+            message = 'EMD-Meldung gesendet. Maximale aktive Einsätze erreicht – keine Zuweisung.',
+        }
+    end
+
+    for _, active in pairs(Missions.active) do
+        if active.missionId == mission.id and active.state ~= 'completed' then
+            return {
+                ok = true,
+                emdOnly = true,
+                message = 'EMD-Meldung gesendet. Einsatz ist bereits aktiv – keine erneute Zuweisung.',
+            }
+        end
+    end
+
+    local activeId = Missions.CreateActive(mission, assignees, route)
+
+    for _, entry in ipairs(assignees) do
+        TriggerClientEvent('nm_ktjobs:client:missionAssigned', entry.source, activeId, mission, route)
+    end
+
+    return {
+        ok = true,
+        emdOnly = false,
+        activeId = activeId,
+        message = 'Test-Einsatz ausgelöst und Fahrzeuge zugewiesen.',
+    }
 end
 
 function Missions.GiveMissionItems(source, mission)
@@ -336,7 +427,7 @@ CreateThread(function()
         Wait(Config.CheckInterval * 1000)
 
         for _, mission in ipairs(Storage.GetMissions()) do
-            if mission.enabled and Missions.VehicleRequirementsMet(mission) then
+            if Missions.IsAutoDispatchEnabled(mission) and Missions.VehicleRequirementsMet(mission) then
                 Missions.DispatchMission(mission)
             end
         end
