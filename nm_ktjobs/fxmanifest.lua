@@ -8,6 +8,10 @@ version '1.0.0'
 
 lua54 'yes'
 
+escrow_ignore {
+    'config.lua',
+}
+
 dependencies {
     'oxmysql',
 }
