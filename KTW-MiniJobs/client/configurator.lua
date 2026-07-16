@@ -155,7 +155,7 @@ end)
 
 RegisterNUICallback('checkVehicles', function(data, cb)
     if data.missionId then
-        TriggerServerEvent('nm_ktjobs:server:vehicleStatus', data.missionId)
+        TriggerServerEvent('nm_ktjobs:server:vehicleStatus', data.missionId, data.mission)
     end
     cb('ok')
 end)

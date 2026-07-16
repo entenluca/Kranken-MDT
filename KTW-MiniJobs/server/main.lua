@@ -78,13 +78,21 @@ RegisterNetEvent('nm_ktjobs:server:cancelMission', function(activeId)
     end
 end)
 
-RegisterNetEvent('nm_ktjobs:server:vehicleStatus', function(missionId)
+RegisterNetEvent('nm_ktjobs:server:vehicleStatus', function(missionId, missionPayload)
     local source = source
     if not isAdmin(source) then
         return
     end
 
-    local mission = Storage.GetMissionById(missionId)
+    local mission
+
+    if type(missionPayload) == 'table' then
+        mission = Utils.SanitizeMission(missionPayload, VehicleTypes.GetForJob(Jobs.ResolveJob(missionPayload.job)))
+        mission.job = Jobs.ResolveJob(mission.job)
+    else
+        mission = Storage.GetMissionById(missionId)
+    end
+
     if not mission then
         return
     end

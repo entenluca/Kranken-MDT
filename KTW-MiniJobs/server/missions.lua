@@ -26,20 +26,124 @@ function Missions.VehicleRequirementsMet(mission)
 end
 
 function Missions.GetVehicleStatus(mission)
-    local counts = getOccupiedVehicleCounts(mission.job)
-    local status = {}
+    local result = {
+        ready = false,
+        issues = {},
+        requirements = {},
+        emdAvailable = EmergencyDispatch.IsAvailable(),
+    }
 
-    for _, requirement in ipairs(mission.vehicles or {}) do
-        local reqType = EmergencyDispatch.NormalizeVehicleType(requirement.type)
-        status[#status + 1] = {
-            type = reqType,
-            min = requirement.min,
-            current = counts[reqType] or 0,
-            met = (counts[reqType] or 0) >= requirement.min,
-        }
+    local jobName = mission.job or ''
+
+    if jobName == '' then
+        result.issues[#result.issues + 1] = 'Kein Job ausgewählt.'
+        return result
     end
 
-    return status
+    if #VehicleTypes.GetForJob(jobName) == 0 then
+        result.issues[#result.issues + 1] = ('Für Job „%s“ sind keine EMD-Fahrzeugtypen hinterlegt.'):format(jobName)
+        return result
+    end
+
+    if not result.emdAvailable then
+        result.issues[#result.issues + 1] = 'EmergencyDispatch ist nicht gestartet – Live-Status der besetzten Fahrzeuge nicht verfügbar.'
+    end
+
+    local mannedCounts = getOccupiedVehicleCounts(jobName)
+    local availableGrouped = EmergencyDispatch.GroupAvailableVehiclesByType(jobName)
+    local vehicles = mission.vehicles or {}
+    local configValid = true
+
+    if #vehicles == 0 then
+        local availableTotal = 0
+        local mannedTotal = 0
+
+        for vehicleType, pool in pairs(availableGrouped) do
+            availableTotal = availableTotal + #pool
+            mannedTotal = mannedTotal + (mannedCounts[vehicleType] or 0)
+        end
+
+        local met = availableTotal > 0
+        result.requirements[#result.requirements + 1] = {
+            type = 'Beliebig',
+            min = 1,
+            manned = mannedTotal,
+            available = availableTotal,
+            met = met,
+            message = met
+                and 'Keine Zeilen konfiguriert – mindestens ein freies Fahrzeug verfügbar.'
+                or 'Keine Zeilen konfiguriert – kein freies besetztes Fahrzeug im Dienst verfügbar.',
+        }
+
+        if not met and result.emdAvailable then
+            result.issues[#result.issues + 1] = 'Kein freies besetztes Fahrzeug im Dienst verfügbar.'
+        end
+
+        result.ready = met and result.emdAvailable
+        return result
+    end
+
+    for index, requirement in ipairs(vehicles) do
+        local reqType = EmergencyDispatch.NormalizeVehicleType(requirement.type)
+        local min = tonumber(requirement.min)
+
+        if reqType == '' then
+            result.issues[#result.issues + 1] = ('Zeile %s: Fahrzeugtyp fehlt.'):format(index)
+            configValid = false
+        elseif not VehicleTypes.IsValidForJob(jobName, reqType) then
+            result.issues[#result.issues + 1] = ('Zeile %s: „%s“ ist für diesen Job kein gültiger EMD-Typ.'):format(index, reqType)
+            configValid = false
+        elseif not min or min < 1 then
+            result.issues[#result.issues + 1] = ('Zeile %s: Mindestanzahl fehlt oder ist ungültig.'):format(index)
+            configValid = false
+        end
+    end
+
+    if not configValid then
+        return result
+    end
+
+    local allMet = true
+
+    for _, requirement in ipairs(vehicles) do
+        local reqType = EmergencyDispatch.NormalizeVehicleType(requirement.type)
+        local min = math.max(1, math.floor(tonumber(requirement.min) or 1))
+        local manned = mannedCounts[reqType] or 0
+        local available = #(availableGrouped[reqType] or {})
+        local met = available >= min
+        local message
+
+        if met then
+            message = ('%s: %s/%s frei verfügbar (erfüllt)'):format(reqType, available, min)
+        elseif manned < min then
+            message = ('%s: nur %s/%s besetzt – es fehlen %s'):format(reqType, manned, min, min - manned)
+        else
+            message = ('%s: %s besetzt, aber nur %s/%s frei (andere im Einsatz)'):format(reqType, manned, available, min)
+        end
+
+        result.requirements[#result.requirements + 1] = {
+            type = reqType,
+            min = min,
+            manned = manned,
+            available = available,
+            met = met,
+            message = message,
+        }
+
+        if not met then
+            result.issues[#result.issues + 1] = message
+            allMet = false
+        end
+    end
+
+    if allMet and result.emdAvailable then
+        result.ready = #EmergencyDispatch.SelectVehiclesForMission(mission) > 0
+        if not result.ready then
+            result.issues[#result.issues + 1] = 'Nicht genügend freie Fahrzeuge für die automatische Zuweisung verfügbar.'
+        end
+    end
+
+    return result
 end
 
 function Missions.IsOnCooldown(missionId)

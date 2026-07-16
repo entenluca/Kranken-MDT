@@ -281,6 +281,137 @@ function createCoordBlock(title, prefix, mission, missionId) {
     return block;
 }
 
+const vehicleStatusTimers = {};
+
+function getLocalVehicleIssues(mission, jobName) {
+    const issues = [];
+
+    if (!jobName) {
+        issues.push('Kein Job ausgewählt.');
+        return issues;
+    }
+
+    if (!getVehicleTypesForJob(jobName).length) {
+        issues.push(`Für Job „${jobName}“ sind keine EMD-Fahrzeugtypen hinterlegt.`);
+        return issues;
+    }
+
+    const vehicles = mission.vehicles || [];
+    if (!vehicles.length) {
+        return issues;
+    }
+
+    vehicles.forEach((vehicle, index) => {
+        const line = index + 1;
+        if (!vehicle.type) {
+            issues.push(`Zeile ${line}: Fahrzeugtyp fehlt.`);
+        } else if (!isVehicleTypeAllowed(jobName, vehicle.type)) {
+            issues.push(`Zeile ${line}: „${vehicle.type}“ ist kein gültiger EMD-Typ für diesen Job.`);
+        }
+
+        if (vehicle.min === '' || vehicle.min === undefined || Number(vehicle.min) < 1) {
+            issues.push(`Zeile ${line}: Mindestanzahl fehlt oder ist ungültig.`);
+        }
+    });
+
+    return issues;
+}
+
+function renderVehicleStatusPanel(card, status) {
+    let panel = card.querySelector('.vehicle-status-panel');
+
+    if (!panel) {
+        panel = UI.el('div', 'vehicle-status-panel');
+        const vehicleSection = card.querySelector('.vehicle-section');
+        if (vehicleSection) {
+            vehicleSection.appendChild(panel);
+        }
+    }
+
+    panel.replaceChildren();
+
+    const title = UI.el('div', 'vehicle-status-title');
+    const list = UI.el('ul', 'vehicle-status-list');
+
+    if (status.ready) {
+        panel.className = 'vehicle-status-panel is-ready';
+        title.textContent = 'Bereit – alle Voraussetzungen erfüllt';
+    } else if ((status.localIssues || []).length > 0 || (status.issues || []).length > 0) {
+        panel.className = 'vehicle-status-panel is-error';
+        title.textContent = 'Nicht bereit – folgendes fehlt oder stimmt nicht:';
+    } else {
+        panel.className = 'vehicle-status-panel is-warn';
+        title.textContent = 'Status wird geprüft …';
+    }
+
+    panel.appendChild(title);
+
+    const lines = [];
+
+    (status.localIssues || []).forEach((issue) => lines.push({ text: issue, type: 'error' }));
+    (status.issues || []).forEach((issue) => {
+        if (!lines.some((line) => line.text === issue)) {
+            lines.push({ text: issue, type: 'error' });
+        }
+    });
+
+    (status.requirements || []).forEach((req) => {
+        if (req.message) {
+            lines.push({
+                text: req.message,
+                type: req.met ? 'ok' : 'error',
+            });
+        }
+    });
+
+    if (!status.ready && !lines.length) {
+        lines.push({ text: 'Live-Status konnte nicht geladen werden.', type: 'warn' });
+    }
+
+    if (!status.emdAvailable && status.ready === false) {
+        if (!lines.some((line) => line.text.includes('EmergencyDispatch'))) {
+            lines.push({
+                text: 'EmergencyDispatch ist nicht gestartet – Live-Status der besetzten Fahrzeuge nicht verfügbar.',
+                type: 'warn',
+            });
+        }
+    }
+
+    lines.forEach((line) => {
+        const item = UI.el('li', `vehicle-status-item is-${line.type}`);
+        item.textContent = line.text;
+        list.appendChild(item);
+    });
+
+    panel.appendChild(list);
+}
+
+function scheduleVehicleStatusCheck(missionId) {
+    clearTimeout(vehicleStatusTimers[missionId]);
+    vehicleStatusTimers[missionId] = setTimeout(() => {
+        const card = document.querySelector(`.mission-card[data-id="${missionId}"]`);
+        if (!card) return;
+
+        const mission = getMissionFromCard(card);
+        const jobName = mission.job || state.jobs[0]?.name || '';
+        const localIssues = getLocalVehicleIssues(mission, jobName);
+
+        renderVehicleStatusPanel(card, {
+            ready: false,
+            localIssues,
+            issues: localIssues,
+            requirements: [],
+            emdAvailable: true,
+        });
+
+        if (localIssues.length > 0) {
+            return;
+        }
+
+        nui('checkVehicles', { missionId, mission });
+    }, 250);
+}
+
 function createListRow(missionId, kind, index, data, onRemove, jobName = '') {
     const row = UI.el('div', `list-row${kind === 'item' ? ' items' : ''}`, {
         dataset: { [kind]: String(index) },
@@ -295,6 +426,7 @@ function createListRow(missionId, kind, index, data, onRemove, jobName = '') {
             items: typeItems,
             value: selectedType,
             placeholder: types.length ? 'Typ' : 'Keine EMD-Typen',
+            onChange: () => scheduleVehicleStatusCheck(missionId),
         });
         row._vehicleTypeDropdown = typeDropdown;
         row.appendChild(typeDropdown.el);
@@ -306,14 +438,9 @@ function createListRow(missionId, kind, index, data, onRemove, jobName = '') {
             placeholder: 'Min.',
         });
         if (data.min !== undefined && data.min !== '') minInput.value = String(data.min);
+        minInput.addEventListener('change', () => scheduleVehicleStatusCheck(missionId));
+        minInput.addEventListener('input', () => scheduleVehicleStatusCheck(missionId));
         row.appendChild(minInput);
-        row.appendChild(UI.iconButton('btn-check-vehicle', 'play', {
-            title: 'Status prüfen',
-            onClick: () => {
-                syncFromDom();
-                nui('checkVehicles', { missionId });
-            },
-        }));
     } else {
         const nameInput = UI.input('item-name', { type: 'text', placeholder: 'Item-Name' });
         if (data.name) nameInput.value = data.name;
@@ -432,6 +559,7 @@ function createMissionCard(mission) {
             m.job = jobName;
             m.vehicles = (m.vehicles || []).filter((vehicle) => isVehicleTypeAllowed(jobName, vehicle.type));
             renderMissions();
+            scheduleVehicleStatusCheck(mission.id);
         },
     });
     top.appendChild(jobDropdown.el);
@@ -515,8 +643,9 @@ function createMissionCard(mission) {
 
     const vehicleSection = UI.section(
         'FAHRZEUG-VORAUSSETZUNGEN',
-        'Fahrzeugtypen stammen aus der EMD-Tabelle und hängen vom gewählten Job ab. Alle Zeilen müssen erfüllt sein, damit die Mission automatisch ausgelöst wird.',
+        'Fahrzeugtypen stammen aus der EMD-Tabelle und hängen vom gewählten Job ab. Der Status zeigt, was fehlt oder nicht erfüllt ist.',
     );
+    vehicleSection.classList.add('vehicle-section');
     const currentJob = mission.job || state.jobs[0]?.name || '';
     const vehicleList = UI.el('div', 'vehicle-list');
     (mission.vehicles || []).forEach((v, i) => {
@@ -525,6 +654,7 @@ function createMissionCard(mission) {
             const m = state.missions.find((x) => x.id === mission.id);
             m.vehicles.splice(i, 1);
             renderMissions();
+            scheduleVehicleStatusCheck(mission.id);
         }, currentJob));
     });
     vehicleSection.appendChild(vehicleList);
@@ -537,6 +667,7 @@ function createMissionCard(mission) {
             const m = state.missions.find((x) => x.id === mission.id);
             m.vehicles.push({ type: '', min: '' });
             renderMissions();
+            scheduleVehicleStatusCheck(mission.id);
         },
     });
     if (!getVehicleTypesForJob(currentJob).length) {
@@ -544,7 +675,13 @@ function createMissionCard(mission) {
         addVehicleBtn.title = 'Für diesen Job sind keine EMD-Fahrzeugtypen hinterlegt';
     }
     vehicleSection.appendChild(addVehicleBtn);
+
+    const vehicleStatusPanel = UI.el('div', 'vehicle-status-panel is-warn');
+    vehicleStatusPanel.appendChild(UI.el('div', 'vehicle-status-title', { text: 'Status wird geprüft …' }));
+    vehicleSection.appendChild(vehicleStatusPanel);
     body.appendChild(vehicleSection);
+
+    setTimeout(() => scheduleVehicleStatusCheck(mission.id), 0);
 
     const itemSection = UI.section(
         'MTD-ITEMS',
@@ -593,7 +730,10 @@ function renderMissions() {
         refs.missions.appendChild(createMissionCard(mission));
     });
 
-    requestAnimationFrame(() => refs.scrollbar?.update());
+    requestAnimationFrame(() => {
+        refs.scrollbar?.update();
+        list.forEach((mission) => scheduleVehicleStatusCheck(mission.id));
+    });
 }
 
 function readCoord(card, prefix) {
@@ -686,30 +826,9 @@ function closeConfigurator() {
 
 function updateVehicleStatus(missionId, status) {
     const card = document.querySelector(`.mission-card[data-id="${missionId}"]`);
-    if (!card) return;
+    if (!card || !status) return;
 
-    const heading = card.querySelector('.section h3');
-    if (!heading) return;
-
-    const iconName = (met) => (met ? 'check' : 'cross');
-    let badge = card.querySelector('.vehicle-status');
-
-    if (!badge) {
-        badge = UI.el('span', 'vehicle-status');
-        heading.appendChild(document.createTextNode(' '));
-        heading.appendChild(badge);
-    }
-
-    badge.replaceChildren();
-    badge.className = `status-badge vehicle-status ${status.every((s) => s.met) ? 'ok' : 'fail'}`;
-
-    status.forEach((s, idx) => {
-        if (idx > 0) badge.appendChild(document.createTextNode(' · '));
-        const line = UI.el('span', 'status-line');
-        line.appendChild(document.createTextNode(`${s.type}: ${s.current}/${s.min} `));
-        line.appendChild(Icons.create(iconName(s.met), 12));
-        badge.appendChild(line);
-    });
+    renderVehicleStatusPanel(card, status);
 }
 
 buildShell();
