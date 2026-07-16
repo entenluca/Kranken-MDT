@@ -26,6 +26,7 @@ end
 RegisterNetEvent('nm_ktjobs:server:requestConfigurator', function()
     local source = source
     Storage.WaitUntilReady()
+    Jobs.WaitUntilReady()
 
     if not isAdmin(source) then
         Framework.Notify(source, 'Keine Berechtigung für den Einsatz-Konfigurator.', 'error')

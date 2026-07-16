@@ -4,7 +4,7 @@ Jobs = {
 }
 
 local function jobsTableName()
-    return Config.DatabaseJobsTable or 'ktjobs_jobs'
+    return Config.JobsTable or 'jobs'
 end
 
 local function waitForDatabase()
@@ -16,23 +16,31 @@ end
 function Jobs.Load()
     waitForDatabase()
 
-    local rows = Database.Query(([[
-        SELECT name, label, sort_order, enabled
-        FROM `%s`
-        WHERE enabled = 1
-        ORDER BY sort_order ASC, label ASC
-    ]]):format(jobsTableName()))
+    local ok, rows = pcall(function()
+        return Database.Query(([[
+            SELECT name, label
+            FROM `%s`
+            ORDER BY label ASC
+        ]]):format(jobsTableName()))
+    end)
 
     Jobs.list = {}
-    for _, row in ipairs(rows) do
-        Jobs.list[#Jobs.list + 1] = {
-            name = row.name,
-            label = row.label ~= '' and row.label or row.name,
-        }
+
+    if ok and type(rows) == 'table' then
+        for _, row in ipairs(rows) do
+            if row.name and row.name ~= '' then
+                Jobs.list[#Jobs.list + 1] = {
+                    name = row.name,
+                    label = row.label and row.label ~= '' and row.label or row.name,
+                }
+            end
+        end
+    else
+        print(('[ktjobs] WARNUNG: Jobs konnten nicht aus `%s` geladen werden.'):format(jobsTableName()))
     end
 
     Jobs.ready = true
-    print(('[ktjobs] %s Jobs aus Datenbank geladen.'):format(#Jobs.list))
+    print(('[ktjobs] %s Jobs aus `%s` geladen.'):format(#Jobs.list, jobsTableName()))
 end
 
 function Jobs.GetJobs()

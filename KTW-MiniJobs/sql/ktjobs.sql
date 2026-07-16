@@ -20,16 +20,3 @@ CREATE TABLE IF NOT EXISTS `ktjobs_missions` (
     `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `ktjobs_jobs` (
-    `name` VARCHAR(64) NOT NULL,
-    `label` VARCHAR(128) NOT NULL DEFAULT '',
-    `sort_order` INT NOT NULL DEFAULT 0,
-    `enabled` TINYINT(1) NOT NULL DEFAULT 1,
-    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-INSERT IGNORE INTO `ktjobs_jobs` (`name`, `label`, `sort_order`, `enabled`) VALUES
-    ('ambulance', 'Rettungsdienst', 1, 1),
-    ('fire', 'Feuerwehr', 2, 1);

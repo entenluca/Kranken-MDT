@@ -27,12 +27,6 @@ Config.CompleteRadius = 15.0
 -- NPC-Modell-Fallback für KT (nur wenn im Einsatz leer)
 Config.DefaultNpcModel = 'a_m_y_business_02'
 
--- Verfügbare Jobs im Konfigurator (Name = Framework-Job, Label = Anzeige)
-Config.Jobs = {
-    { name = 'ambulance', label = 'ambulance' },
-    { name = 'fire', label = 'fire' },
-}
-
 -- Erlaubte Fahrzeugtypen (EmergencyDispatch mannedvehicles → type)
 Config.AllowedVehicleTypes = {
     'RTW',
@@ -63,8 +57,8 @@ Config.Database = 'auto'
 -- Tabellenname für Einsätze
 Config.DatabaseTable = 'ktjobs_missions'
 
--- Tabellenname für Jobs (Konfigurator-Auswahl)
-Config.DatabaseJobsTable = 'ktjobs_jobs'
+-- Framework-Jobs-Tabelle (ESX/QB: standardmäßig "jobs")
+Config.JobsTable = 'jobs'
 
 -- Berechtigungen für den Konfigurator (eine davon reicht)
 Config.AdminAces = {

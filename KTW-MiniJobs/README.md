@@ -35,7 +35,7 @@ Bereits berechtigt sind standardmäßig:
 - ESX `admin` / `superadmin`
 - QB `god` / `admin`
 
-4. `config.lua` anpassen (Jobs, Intervalle)
+4. `config.lua` anpassen (Intervalle, Fahrzeugtypen)
 
 ## Nutzung
 
