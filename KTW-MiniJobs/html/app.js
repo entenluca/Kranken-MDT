@@ -622,8 +622,6 @@ function createMissionCard(mission) {
     rewardSection.appendChild(rewardRow);
     body.appendChild(rewardSection);
 
-    card._controls = { toggle, typeDropdown, jobDropdown, rewardToggle, npcDropdown };
-
     const npcSection = UI.section(
         'NPC (nur bei KT)',
         'Wähle ein vordefiniertes NPC-Modell. Der Anzeigename ist frei wählbar, der Spawnname wird für den Einsatz verwendet.',
@@ -709,6 +707,8 @@ function createMissionCard(mission) {
         },
     }));
     body.appendChild(itemSection);
+
+    card._controls = { toggle, typeDropdown, jobDropdown, rewardToggle, npcDropdown };
 
     card.appendChild(body);
     return card;
